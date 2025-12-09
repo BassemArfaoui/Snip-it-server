@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
+import { SnippetModule } from './snippet/snippet.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CommonModule } from './common/common.module';
       synchronize: true,
     }),
     CommonModule,
+    SnippetModule,
   ],
   controllers: [AppController],
   providers: [AppService],
