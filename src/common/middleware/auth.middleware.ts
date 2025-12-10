@@ -25,10 +25,14 @@ export class AuthMiddleware implements NestMiddleware {
             const decoded = jwt.verify(token, secret) as JwtPayload;
 
 
-            if (!decoded.userId) {
-                throw new UnauthorizedException('Invalid token payload: userId missing');
+            if (!decoded || !decoded.userId || !decoded.username || !decoded.email) {
+                throw new UnauthorizedException('Invalid token payload');
             }
-            req['userId'] = decoded.userId;
+            req['user'] = {
+                userId: decoded.userId,
+                username: decoded.username,
+                email: decoded.email,
+            };
 
 
             next();

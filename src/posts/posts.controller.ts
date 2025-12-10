@@ -4,11 +4,11 @@ import { Controller, Get, Req } from '@nestjs/common';
 export class PostsController {
     @Get()
     findAll(@Req() req: any) {
-        const userId = req['userId'];
+        const user = req['user'];
 
         return {
             message: 'This is a protected route',
-            userId: userId,
+            user,
             posts: [
                 { id: 1, title: 'First Post', content: 'This is the first post content' },
                 { id: 2, title: 'Second Post', content: 'This is the second post content' },
