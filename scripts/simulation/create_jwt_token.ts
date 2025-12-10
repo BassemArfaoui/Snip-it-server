@@ -3,7 +3,9 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 
 
-//message lel team : u can create jwt tokens to test with this script
+// message lel team : u can create jwt tokens to test with this script
+// run it like this : npx ts-node scripts/simulation/create_jwt_token.ts <userId>
+
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -18,7 +20,7 @@ if (!secret) {
 const userId = process.argv[2] || '1';
 
 const payload = {
-    userId: userId,
+    Id: userId,
 };
 
 try {
