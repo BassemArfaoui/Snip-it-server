@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
+import { AuthMiddleware } from './common/middleware/auth.middleware';
 import { SnippetModule } from './snippet/snippet.module';
 import { UsersModule } from './users/users.module';
 import { PrivateSnippetsModule } from './private-snippets/private-snippets.module';
@@ -46,4 +47,14 @@ import { InteractionsModule } from './interactions/interactions.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(AuthMiddleware)
+      .exclude(
+        { path: 'auth/(.*)', method: RequestMethod.ALL },
+        //message lel team : add any other public routes here
+      )
+      .forRoutes('*');
+  }
+}
