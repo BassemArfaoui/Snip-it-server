@@ -17,14 +17,14 @@ export class User extends BaseEntity {
     @Column()
     password: string;
 
-    @Column()
+    @Column({ unique: true })
     username: string;
 
     @Column()
     fullName: string;
 
-    @Column()
-    role: string; // USER or CONTRIBUTOR
+    @Column({ nullable: true })
+    role: string;
 
     @Column({ nullable: true })
     imageProfile: string;
@@ -42,7 +42,6 @@ export class User extends BaseEntity {
     solutionsCount: number;
 
     // RELATIONS
-
     @OneToMany(() => PrivateSnippet, ps => ps.user)
     privateSnippets: PrivateSnippet[];
 
