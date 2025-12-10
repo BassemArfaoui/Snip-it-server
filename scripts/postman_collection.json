@@ -35,6 +35,37 @@
                 "description": "Fetches posts. Requires a valid JWT token in the 'jwt_token' collection variable."
             },
             "response": []
+        },
+        {
+            "name": "Register User",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\",\n    \"username\": \"testuser\",\n    \"fullName\": \"Test User\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:3000/auth/register",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "3000",
+                    "path": [
+                        "auth",
+                        "register"
+                    ]
+                },
+                "description": "Registers a new user."
+            },
+            "response": []
         }
     ],
     "variable": [

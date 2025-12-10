@@ -15,7 +15,7 @@ import { CommentsModule } from './comments/comments.module';
 import { CollectionsModule } from './collections/collections.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { InteractionsModule } from './interactions/interactions.module';
-
+import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,6 +33,7 @@ import { InteractionsModule } from './interactions/interactions.module';
       synchronize: true,
     }),
     CommonModule,
+    AuthModule,
     SnippetModule,
     UsersModule,
     PrivateSnippetsModule,
