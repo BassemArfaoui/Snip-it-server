@@ -22,4 +22,13 @@ export class UsersService {
     async findOneByUsername(username: string): Promise<User | null> {
         return this.usersRepository.findOne({ where: { username } });
     }
+
+    async findOneByEmailOrUsername(identifier: string): Promise<User | null> {
+        return this.usersRepository.findOne({
+            where: [
+                { email: identifier },
+                { username: identifier },
+            ],
+        });
+    }
 }
