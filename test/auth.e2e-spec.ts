@@ -131,4 +131,78 @@ describe('AuthController (e2e)', () => {
                 });
         });
     });
+
+    describe('/auth/login (POST)', () => {
+        const validUser = {
+            email: 'login-test@example.com',
+            password: 'password123',
+            username: 'logintestuser',
+            fullName: 'Login Test User',
+        };
+
+        beforeAll(async () => {
+            // Register the user
+            await request(app.getHttpServer())
+                .post('/auth/register')
+                .send(validUser);
+        });
+
+        it('should login with valid email and password', () => {
+            return request(app.getHttpServer())
+                .post('/auth/login')
+                .send({ identifier: validUser.email, password: validUser.password })
+                .expect(201)
+                .expect((res) => {
+                    expect(res.body.accessToken).toBeDefined();
+                    expect(res.body.user).toBeDefined();
+                    expect(res.body.user.email).toBe(validUser.email);
+                });
+        });
+
+        it('should login with valid username and password', () => {
+            return request(app.getHttpServer())
+                .post('/auth/login')
+                .send({ identifier: validUser.username, password: validUser.password })
+                .expect(201)
+                .expect((res) => {
+                    expect(res.body.accessToken).toBeDefined();
+                    expect(res.body.user).toBeDefined();
+                    expect(res.body.user.username).toBe(validUser.username);
+                });
+        });
+
+        it('should fail with invalid identifier', () => {
+            return request(app.getHttpServer())
+                .post('/auth/login')
+                .send({ identifier: 'wrong@example.com', password: validUser.password })
+                .expect(401);
+        });
+
+        it('should fail with invalid password', () => {
+            return request(app.getHttpServer())
+                .post('/auth/login')
+                .send({ identifier: validUser.email, password: 'wrongpassword' })
+                .expect(401);
+        });
+
+        it('should fail if identifier is missing', () => {
+            return request(app.getHttpServer())
+                .post('/auth/login')
+                .send({ password: validUser.password })
+                .expect(400)
+                .expect((res) => {
+                    expect(res.body.message).toContain(ValidationMessages.required('identifier'));
+                });
+        });
+
+        it('should fail if password is missing', () => {
+            return request(app.getHttpServer())
+                .post('/auth/login')
+                .send({ identifier: validUser.email })
+                .expect(400)
+                .expect((res) => {
+                    expect(res.body.message).toContain(ValidationMessages.required('password'));
+                });
+        });
+    });
 });
