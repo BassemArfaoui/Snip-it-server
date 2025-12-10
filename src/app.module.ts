@@ -52,8 +52,8 @@ export class AppModule implements NestModule {
     consumer
       .apply(AuthMiddleware)
       .exclude(
-        { path: 'auth/(.*)', method: RequestMethod.ALL },
-        //message lel team : add any other public routes here
+        { path: 'auth/*path', method: RequestMethod.ALL },
+        // message lel team : add any other public routes here
       )
       .forRoutes('*');
   }
