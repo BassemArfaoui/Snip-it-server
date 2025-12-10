@@ -18,9 +18,13 @@ if (!secret) {
 
 
 const userId = process.argv[2] || '1';
+const username = process.argv[3] || 'testuser';
+const email = process.argv[4] || 'test@example.com';
 
 const payload = {
-    Id: userId,
+    userId: userId,
+    username: username,
+    email: email,
 };
 
 try {
