@@ -8,7 +8,7 @@ export class RegisterDto {
 
     @IsNotEmpty({ message: ValidationMessages.required('password') })
     @IsString({ message: ValidationMessages.type('password', 'string') })
-    @MinLength(8, { message: ValidationMessages.length('password', 'min', 6) })
+    @MinLength(8, { message: ValidationMessages.length('password', 'min', 8) })
     password: string;
 
     @IsNotEmpty({ message: ValidationMessages.required('username') })
