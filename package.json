@@ -18,7 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node scripts/seed.ts"
+    "seed": "ts-node scripts/seed.ts",
+    "db:recreate": "ts-node scripts/recreate-db.ts",
+    "db:empty": "ts-node scripts/empty-db.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -26,7 +28,9 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/typeorm": "^11.0.0",
+    "@types/bcrypt": "^6.0.0",
     "@types/jsonwebtoken": "^9.0.10",
+    "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "jsonwebtoken": "^9.0.3",
