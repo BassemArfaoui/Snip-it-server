@@ -8,6 +8,7 @@ import { Issue } from '../../src/modules/issues/entities/issue.entity';
 import { Solution } from '../../src/modules/solutions/entities/solution.entity';
 import { Comment } from '../../src/modules/comments/entities/comment.entity';
 import { Collection } from '../../src/modules/collections/entities/collection.entity';
+import { CommentTypeEnum } from '../../src/common/enums/comment-type.enum';
 import { CollectionItem } from '../../src/modules/collections/entities/item.entity';
 import { Subscription } from '../../src/modules/subscriptions/entities/subscription.entity';
 import { Interaction } from '../../src/modules/interactions/entities/interaction.entity';
@@ -87,7 +88,7 @@ export class SeedService {
         const comment1 = this.commentRepository.create({
             content: 'Great post!',
             targetId: post1.id,
-            targetType: 'POST',
+            targetType: CommentTypeEnum.POST,
             user: user1,
         });
         await this.commentRepository.save(comment1);

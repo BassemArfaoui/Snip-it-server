@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
+import { CommentTypeEnum } from '../../../common/enums/comment-type.enum';
 
 @Entity('comments')
 export class Comment extends BaseEntity {
@@ -10,8 +11,8 @@ export class Comment extends BaseEntity {
     @Column()
     targetId: number;
 
-    @Column()
-    targetType: string; // POST | ISSUE | SOLUTION
+    @Column({ type: 'enum', enum: CommentTypeEnum })
+    targetType: CommentTypeEnum;
 
     @ManyToOne(() => Comment, { nullable: true })
     parentComment: Comment;

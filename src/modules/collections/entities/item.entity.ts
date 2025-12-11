@@ -1,4 +1,5 @@
 import { Entity, Column, ManyToOne } from 'typeorm';
+import { CollectionItemEnum } from 'src/common/enums/collection-item.enum';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Collection } from './collection.entity';
 
@@ -10,8 +11,8 @@ export class CollectionItem extends BaseEntity {
     @Column()
     targetId: number;
 
-    @Column()
-    targetType: string; // POST | ISSUE | SOLUTION | SNIPPET
+    @Column({ type: 'enum', enum: CollectionItemEnum })
+    targetType: CollectionItemEnum;
 
     @Column({ default: false })
     isPinned: boolean;
