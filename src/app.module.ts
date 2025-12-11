@@ -16,6 +16,7 @@ import { CollectionsModule } from './modules/collections/collections.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { SuggestedPostsModule } from './modules/suggested_posts/suggested_posts.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -44,6 +45,7 @@ import { AuthModule } from './modules/auth/auth.module';
     CollectionsModule,
     SubscriptionsModule,
     InteractionsModule,
+    SuggestedPostsModule
   ],
   controllers: [AppController],
   providers: [AppService],
