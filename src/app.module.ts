@@ -5,17 +5,17 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
 import { AuthMiddleware } from './common/middleware/auth.middleware';
-import { SnippetModule } from './snippet/snippet.module';
-import { UsersModule } from './users/users.module';
-import { PrivateSnippetsModule } from './private-snippets/private-snippets.module';
-import { PostsModule } from './posts/posts.module';
-import { IssuesModule } from './issues/issues.module';
-import { SolutionsModule } from './solutions/solutions.module';
-import { CommentsModule } from './comments/comments.module';
-import { CollectionsModule } from './collections/collections.module';
-import { SubscriptionsModule } from './subscriptions/subscriptions.module';
-import { InteractionsModule } from './interactions/interactions.module';
-import { AuthModule } from './auth/auth.module';
+import { SnippetModule } from './modules/snippet/snippet.module';
+import { UsersModule } from './modules/users/users.module';
+import { PrivateSnippetsModule } from './modules/private-snippets/private-snippets.module';
+import { PostsModule } from './modules/posts/posts.module';
+import { IssuesModule } from './modules/issues/issues.module';
+import { SolutionsModule } from './modules/solutions/solutions.module';
+import { CommentsModule } from './modules/comments/comments.module';
+import { CollectionsModule } from './modules/collections/collections.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { InteractionsModule } from './modules/interactions/interactions.module';
+import { AuthModule } from './modules/auth/auth.module';
 @Module({
   imports: [
     ConfigModule.forRoot({

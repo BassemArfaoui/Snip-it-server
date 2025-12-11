@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../src/users/entities/user.entity';
-import { Snippet } from '../../src/snippet/entities/snippet.entity';
-import { Post } from '../../src/posts/entities/post.entity';
-import { Issue } from '../../src/issues/entities/issue.entity';
-import { Solution } from '../../src/solutions/entities/solution.entity';
-import { Comment } from '../../src/comments/entities/comment.entity';
-import { Collection } from '../../src/collections/entities/collection.entity';
-import { CollectionItem } from '../../src/collections/entities/item.entity';
-import { Subscription } from '../../src/subscriptions/entities/subscription.entity';
-import { Interaction } from '../../src/interactions/entities/interaction.entity';
+import { User } from '../../src/modules/users/entities/user.entity';
+import { Snippet } from '../../src/modules/snippet/entities/snippet.entity';
+import { Post } from '../../src/modules/posts/entities/post.entity';
+import { Issue } from '../../src/modules/issues/entities/issue.entity';
+import { Solution } from '../../src/modules/solutions/entities/solution.entity';
+import { Comment } from '../../src/modules/comments/entities/comment.entity';
+import { Collection } from '../../src/modules/collections/entities/collection.entity';
+import { CollectionItem } from '../../src/modules/collections/entities/item.entity';
+import { Subscription } from '../../src/modules/subscriptions/entities/subscription.entity';
+import { Interaction } from '../../src/modules/interactions/entities/interaction.entity';
 
 @Injectable()
 export class SeedService {
