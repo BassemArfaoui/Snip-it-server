@@ -7,7 +7,7 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
-  // Enable CORS
+  // Enabling CORS
   app.enableCors({
     origin: true,
     credentials: true,
