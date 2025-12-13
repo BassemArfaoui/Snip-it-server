@@ -1,5 +1,5 @@
 import { Entity, Column, ManyToOne } from 'typeorm';
-import { CollectionItemEnum } from 'src/common/enums/collection-item.enum';
+import { CollectionItemEnum } from '../../../common/enums/collection-item.enum';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Collection } from './collection.entity';
 
