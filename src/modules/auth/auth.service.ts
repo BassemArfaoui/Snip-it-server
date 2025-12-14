@@ -1,4 +1,4 @@
-import { randomInt } from 'crypto';
+import { randomBytes, randomInt } from 'crypto';
 import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,9 +9,12 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { HashingService } from '../../common/services/hashing.service';
 import { JwtService } from '../../common/services/jwt.service';
 import { EmailVerification } from './entities/email-verification.entity';
+import { PasswordReset } from './entities/password-reset.entity';
 import { type EmailProvider, EMAIL_PROVIDER_TOKEN } from './providers/email.provider';
 import { AuthTokens } from './types/auth-tokens.type';
 import { User } from '../users/entities/user.entity';
@@ -25,6 +28,8 @@ export class AuthService {
         private readonly configService: ConfigService,
         @InjectRepository(EmailVerification)
         private readonly emailVerificationRepository: Repository<EmailVerification>,
+        @InjectRepository(PasswordReset)
+        private readonly passwordResetRepository: Repository<PasswordReset>,
         @Inject(EMAIL_PROVIDER_TOKEN) private readonly emailProvider: EmailProvider,
     ) { }
 
@@ -193,5 +198,76 @@ export class AuthService {
             otp += digits[randomInt(0, digits.length)];
         }
         return otp;
+    }
+
+    async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+        const { email } = forgotPasswordDto;
+        const user = await this.usersService.findOneByEmail(email);
+
+        if (!user) {
+            // Don't reveal if email exists for security
+            return { message: 'If the email exists, a password reset link has been sent.' };
+        }
+
+        await this.sendPasswordResetLink(user);
+
+        return { message: 'If the email exists, a password reset link has been sent.' };
+    }
+
+    async resetPassword(resetPasswordDto: ResetPasswordDto) {
+        const { email, token, newPassword } = resetPasswordDto;
+        const user = await this.usersService.findOneByEmail(email);
+
+        if (!user) {
+            throw new BadRequestException('Invalid email or token.');
+        }
+
+        const resetRequest = await this.passwordResetRepository.findOne({
+            where: { user: { id: user.id }, usedAt: IsNull() },
+            order: { createdAt: 'DESC' },
+        });
+
+        if (!resetRequest) {
+            throw new BadRequestException('No active reset request. Please request a new link.');
+        }
+
+        if (resetRequest.expiresAt.getTime() < Date.now()) {
+            throw new UnauthorizedException('Reset link expired. Please request a new one.');
+        }
+
+        const isValidToken = await this.hashingService.compare(token, resetRequest.otpHash);
+        if (!isValidToken) {
+            throw new UnauthorizedException('Invalid or already used reset link.');
+        }
+
+        // Hash the new password
+        const hashedPassword = await this.hashingService.hash(newPassword);
+
+        // Mark reset as used
+        resetRequest.usedAt = new Date();
+
+        await Promise.all([
+            this.passwordResetRepository.save(resetRequest),
+            this.usersService.updatePassword(user.id, hashedPassword),
+            // Invalidate all refresh tokens for security
+            this.usersService.updateRefreshToken(user.id, null),
+        ]);
+
+        return { message: 'Password reset successfully. Please login with your new password.' };
+    }
+
+    private async sendPasswordResetLink(user: User): Promise<void> {
+        const ttlMinutes = Number(this.configService.get('OTP_TTL_MINUTES') ?? 10);
+        const token = randomBytes(32).toString('hex');
+        const tokenHash = await this.hashingService.hash(token);
+        const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+        const entity = this.passwordResetRepository.create({ user, otpHash: tokenHash, expiresAt });
+        await this.passwordResetRepository.save(entity);
+
+        const baseResetUrl = this.configService.get('PASSWORD_RESET_URL') ?? 'http://localhost:4200/reset-password';
+        const resetLink = `${baseResetUrl}?token=${token}&email=${encodeURIComponent(user.email)}`;
+
+        await this.emailProvider.sendPasswordReset(user.email, resetLink);
     }
 }

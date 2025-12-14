@@ -60,4 +60,8 @@ export class UsersService {
             emailVerifiedAt: new Date(),
         });
     }
+
+    async updatePassword(userId: number, hashedPassword: string): Promise<void> {
+        await this.usersRepository.update({ id: userId }, { password: hashedPassword });
+    }
 }

@@ -347,6 +347,60 @@ export class DocsController {
                     </div>
                     <div class="note">⏱️ Access token expires in 15 minutes, Refresh token expires in 7 days</div>
                 </div>
+
+                <!-- Forgot Password -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="path">/auth/forgot-password</span>
+                    </div>
+                    <div class="description">Request a password reset link. Response is generic to avoid user enumeration.</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">Request Body</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">email</span> <span class="param-type">(string)</span> <span class="param-required">*</span></li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response</div>
+                            <div class="example">
+{
+  "message": "If the email exists, a password reset link has been sent."
+}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="note">🔑 A reset link is sent via email (logged to console in development).</div>
+                </div>
+
+                <!-- Reset Password -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="path">/auth/reset-password</span>
+                    </div>
+                    <div class="description">Reset password using the link token. Invalidates all refresh tokens for security.</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">Request Body</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">email</span> <span class="param-type">(string)</span> <span class="param-required">*</span></li>
+                                <li><span class="param-name">token</span> <span class="param-type">(string)</span> <span class="param-required">*</span></li>
+                                <li><span class="param-name">newPassword</span> <span class="param-type">(string, min 8)</span> <span class="param-required">*</span></li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response</div>
+                            <div class="example">
+{
+  "message": "Password has been reset successfully"
+}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="note">🔐 All refresh tokens are invalidated after password reset. Users must login again.</div>
+                </div>
             </div>
 
             <!-- Configuration Section -->
