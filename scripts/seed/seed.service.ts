@@ -12,6 +12,8 @@ import { CommentTypeEnum } from '../../src/common/enums/comment-type.enum';
 import { CollectionItem } from '../../src/modules/collections/entities/item.entity';
 import { Subscription } from '../../src/modules/subscriptions/entities/subscription.entity';
 import { Interaction } from '../../src/modules/interactions/entities/interaction.entity';
+import { CollectionItemEnum } from '../../src/common/enums/collection-item.enum';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class SeedService {
@@ -31,10 +33,16 @@ export class SeedService {
     async seed() {
         console.log('Seeding data...');
 
+        const existingUsers = await this.userRepository.count();
+        if (existingUsers > 0) {
+            console.log('Database already has users; skipping seed to avoid duplicates.');
+            return;
+        }
+
         // Create Users
         const user1 = this.userRepository.create({
             email: 'user1@example.com',
-            password: 'password123',
+            password: await bcrypt.hash('password123', 10),
             username: 'user1',
             fullName: 'User One',
             role: 'USER',
@@ -43,13 +51,23 @@ export class SeedService {
 
         const user2 = this.userRepository.create({
             email: 'user2@example.com',
-            password: 'password123',
+            password: await bcrypt.hash('password123', 10),
             username: 'user2',
             fullName: 'User Two',
             role: 'CONTRIBUTOR',
             contributorScore: 100,
         });
         await this.userRepository.save(user2);
+
+        const user3 = this.userRepository.create({
+            email: 'user3@example.com',
+            password: await bcrypt.hash('password123', 10),
+            username: 'user3',
+            fullName: 'User Three',
+            role: 'CONTRIBUTOR',
+            contributorScore: 45,
+        });
+        await this.userRepository.save(user3);
 
         // Create Snippet
         const snippet1 = this.snippetRepository.create({
@@ -68,6 +86,21 @@ export class SeedService {
         });
         await this.postRepository.save(post1);
 
+        const snippet2 = this.snippetRepository.create({
+            title: 'Sum Function',
+            content: 'function sum(a,b){return a+b;}',
+            language: 'javascript',
+        });
+        await this.snippetRepository.save(snippet2);
+
+        const post2 = this.postRepository.create({
+            title: 'Second Post',
+            description: 'Another post by user2',
+            author: user2,
+            snippet: snippet2,
+        });
+        await this.postRepository.save(post2);
+
         // Create Issue
         const issue1 = this.issueRepository.create({
             content: 'I have a bug in my code.',
@@ -75,6 +108,13 @@ export class SeedService {
             user: user1,
         });
         await this.issueRepository.save(issue1);
+
+        const issue2 = this.issueRepository.create({
+            content: 'Styles not loading in production',
+            language: 'css',
+            user: user1,
+        });
+        await this.issueRepository.save(issue2);
 
         // Create Solution
         const solution1 = this.solutionRepository.create({
@@ -92,6 +132,23 @@ export class SeedService {
             user: user1,
         });
         await this.commentRepository.save(comment1);
+
+        // Subscriptions (followers/following)
+        const sub1 = this.subscriptionRepository.create({ subscriber: user1, targetUser: user2 });
+        await this.subscriptionRepository.save(sub1);
+        const sub2 = this.subscriptionRepository.create({ subscriber: user3, targetUser: user2 });
+        await this.subscriptionRepository.save(sub2);
+
+        // Collections and saved posts for user1
+        const saved = this.collectionRepository.create({ user: user1, name: 'Saved' });
+        await this.collectionRepository.save(saved);
+        const savedItem1 = this.collectionItemRepository.create({
+            collection: saved,
+            targetId: post1.id,
+            targetType: CollectionItemEnum.POST,
+            isPinned: false,
+        });
+        await this.collectionItemRepository.save(savedItem1);
 
         console.log('Seeding completed!');
     }
