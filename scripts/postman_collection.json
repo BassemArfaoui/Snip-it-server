@@ -97,6 +97,266 @@
                 "description": "Logs in a user and returns a JWT token."
             },
             "response": []
+        },
+        {
+            "name": "Profile",
+            "item": [
+                {
+                    "name": "Get Profile Summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/profile/{{user_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "profile",
+                                "{{user_id}}"
+                            ]
+                        },
+                        "description": "Returns name, username, followers, followedBy, posts, issues, and score for the user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Saved Posts (Own Only)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/profile/{{user_id}}/saved_posts",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "profile",
+                                "{{user_id}}",
+                                "saved_posts"
+                            ]
+                        },
+                        "description": "Returns posts saved by the current user. Only visible if the token belongs to {{user_id}}; otherwise returns an empty array."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Badges",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/profile/{{user_id}}/bagdes",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "profile",
+                                "{{user_id}}",
+                                "bagdes"
+                            ]
+                        },
+                        "description": "Returns [] for now (badges to be implemented)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Posts",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/profile/{{user_id}}/posts",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "profile",
+                                "{{user_id}}",
+                                "posts"
+                            ]
+                        },
+                        "description": "Returns posts authored by the user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get User Issues",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/profile/{{user_id}}/issues",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "profile",
+                                "{{user_id}}",
+                                "issues"
+                            ]
+                        },
+                        "description": "Returns issues published by the user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Contribution Graph",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/profile/{{user_id}}/contrubution_graph",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "profile",
+                                "{{user_id}}",
+                                "contrubution_graph"
+                            ]
+                        },
+                        "description": "Returns null for now (to be implemented)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Streak",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/profile/{{user_id}}/streak",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "profile",
+                                "{{user_id}}",
+                                "streak"
+                            ]
+                        },
+                        "description": "Returns null for now (to be implemented)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Leader Board",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/profile/{{user_id}}/leader_board",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "profile",
+                                "{{user_id}}",
+                                "leader_board"
+                            ]
+                        },
+                        "description": "Returns users ordered by contributorScore (leaderboard)."
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "variable": [
@@ -105,6 +365,12 @@
             "value": "",
             "type": "string",
             "description": "Paste the JWT token generated by 'npm run create-token' here"
+        },
+        {
+            "key": "user_id",
+            "value": "1",
+            "type": "string",
+            "description": "User id to use in profile endpoints (e.g., 1)"
         }
     ]
 }
