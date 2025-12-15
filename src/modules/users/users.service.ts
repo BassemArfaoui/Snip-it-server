@@ -64,4 +64,14 @@ export class UsersService {
     async updatePassword(userId: number, hashedPassword: string): Promise<void> {
         await this.usersRepository.update({ id: userId }, { password: hashedPassword });
     }
+
+    async findByOAuth(oauthProvider: string, oauthId: string): Promise<User | null> {
+        return this.usersRepository.findOne({
+            where: { oauthProvider, oauthId },
+        });
+    }
+
+    async findById(id: number): Promise<User | null> {
+        return this.usersRepository.findOne({ where: { id } });
+    }
 }

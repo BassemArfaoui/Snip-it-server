@@ -11,6 +11,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { OAuthUserDto } from './dto/oauth-user.dto';
 import { HashingService } from '../../common/services/hashing.service';
 import { JwtService } from '../../common/services/jwt.service';
 import { EmailVerification } from './entities/email-verification.entity';
@@ -55,6 +56,7 @@ export class AuthService {
             ...registerDto,
             password: hashedPassword,
             isEmailVerified: false,
+            role: 'user',
         });
 
         await this.sendOtp(user);
@@ -80,7 +82,7 @@ export class AuthService {
             throw new UnauthorizedException('Please verify your email to login.');
         }
 
-        const tokens = this.generateTokens({ id: user.id, username: user.username, email: user.email });
+        const tokens = this.generateTokensSync({ id: user.id, username: user.username, email: user.email });
         await this.persistRefreshToken(user.id, tokens.refreshToken);
 
         return tokens;
@@ -123,7 +125,7 @@ export class AuthService {
             this.usersService.markEmailVerified(user.id),
         ]);
 
-        const tokens = this.generateTokens({ id: user.id, username: user.username, email: user.email });
+        const tokens = this.generateTokensSync({ id: user.id, username: user.username, email: user.email });
         await this.persistRefreshToken(user.id, tokens.refreshToken);
 
         return { message: 'Email verified successfully.', tokens };
@@ -160,13 +162,23 @@ export class AuthService {
             throw new UnauthorizedException('Invalid refresh token.');
         }
 
-        const tokens = this.generateTokens({ id: user.id, email: user.email, username: user.username });
+        const tokens = this.generateTokensSync({ id: user.id, email: user.email, username: user.username });
         await this.persistRefreshToken(user.id, tokens.refreshToken);
 
         return tokens;
     }
 
-    private generateTokens(user: { id: number; username: string; email: string }): AuthTokens {
+    async generateTokens(user: { id: number; username?: string; email: string }): Promise<AuthTokens> {
+        const payload = { sub: user.id, username: user.username || user.email, email: user.email };
+        const tokens = {
+            accessToken: this.jwtService.signAccessToken(payload),
+            refreshToken: this.jwtService.signRefreshToken(payload),
+        };
+        await this.persistRefreshToken(user.id, tokens.refreshToken);
+        return tokens;
+    }
+
+    private generateTokensSync(user: { id: number; username: string; email: string }): AuthTokens {
         const payload = { sub: user.id, username: user.username, email: user.email };
         return {
             accessToken: this.jwtService.signAccessToken(payload),
@@ -269,5 +281,54 @@ export class AuthService {
         const resetLink = `${baseResetUrl}?token=${token}&email=${encodeURIComponent(user.email)}`;
 
         await this.emailProvider.sendPasswordReset(user.email, resetLink);
+    }
+
+    async validateOrCreateOAuthUser(oauthUserDto: OAuthUserDto): Promise<User> {
+        const { oauthId, oauthProvider } = oauthUserDto;
+
+        // Check if user exists by OAuth provider
+        let user = await this.usersService.findByOAuth(oauthProvider, oauthId);
+
+        if (user) {
+            return user;
+        }
+
+        // Check if email exists from regular signup
+        user = await this.usersService.findOneByEmail(oauthUserDto.email);
+
+        if (user) {
+            // Link OAuth to existing user
+            user.oauthProvider = oauthProvider;
+            user.oauthId = oauthId;
+            return this.usersService.save(user);
+        }
+
+        // Create new user from OAuth
+        user = await this.usersService.create({
+            email: oauthUserDto.email,
+            username: await this.generateUniqueUsername(oauthUserDto.fullName),
+            fullName: oauthUserDto.fullName,
+            imageProfile: oauthUserDto.imageProfile,
+            oauthProvider,
+            oauthId,
+            password: '', // OAuth users don't have passwords
+            isEmailVerified: true, // OAuth emails are pre-verified
+            emailVerifiedAt: new Date(),
+            role: 'user',
+        });
+
+        return user;
+    }
+
+    private async generateUniqueUsername(baseUsername: string): Promise<string> {
+        let username = baseUsername;
+        let counter = 1;
+
+        while (await this.usersService.findOneByUsername(username)) {
+            username = `${baseUsername}${counter}`;
+            counter++;
+        }
+
+        return username;
     }
 }

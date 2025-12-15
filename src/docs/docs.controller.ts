@@ -401,6 +401,22 @@ export class DocsController {
                     </div>
                     <div class="note">🔐 All refresh tokens are invalidated after password reset. Users must login again.</div>
                 </div>
+
+                <!-- GitHub OAuth -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="path">/auth/github</span>
+                    </div>
+                    <div class="description">Initiates GitHub OAuth login/signup flow</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">Redirect</div>
+                            <div class="example">Redirects to GitHub login, then to callback on success</div>
+                        </div>
+                    </div>
+                    <div class="note">🔐 Automatically creates account or links to existing email. Auto-verifies email.</div>
+                </div>
             </div>
 
             <!-- Configuration Section -->
@@ -430,6 +446,21 @@ export class DocsController {
                                 <li><span class="param-name">OTP_LENGTH</span> - OTP code length (Default: 6)</li>
                                 <li><span class="param-name">OTP_TTL_MINUTES</span> - OTP expiration (Default: 10 min)</li>
                                 <li><span class="param-name">BCRYPT_SALT_ROUNDS</span> - Hash rounds (Default: 10)</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">OAuth - GitHub</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">GITHUB_CLIENT_ID</span> - Get from GitHub OAuth App</li>
+                                <li><span class="param-name">GITHUB_CLIENT_SECRET</span> - Get from GitHub OAuth App</li>
+                                <li><span class="param-name">GITHUB_CALLBACK_URL</span> - Default: http://localhost:3000/auth/github/callback</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">URLs & Frontend</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">FRONTEND_URL</span> - Frontend origin for OAuth redirects (Default: http://localhost:3001)</li>
+                                <li><span class="param-name">PASSWORD_RESET_URL</span> - Password reset page URL</li>
                             </ul>
                         </div>
                     </div>

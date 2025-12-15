@@ -38,6 +38,12 @@ export class User extends BaseEntity {
     @Column({ nullable: true })
     imageProfile: string;
 
+    @Column({ nullable: true })
+    oauthProvider?: string;
+
+    @Column({ nullable: true })
+    oauthId?: string;
+
     @Column({ default: 0 })
     contributorScore: number;
 
