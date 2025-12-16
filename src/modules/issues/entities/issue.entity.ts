@@ -17,6 +17,12 @@ export class Issue extends BaseEntity {
     @Column({ default: 0 })
     solutionsCount: number;
 
+    @Column({ default: 0 })
+    likesCount: number;
+
+    @Column({ default: 0 })
+    dislikesCount: number;
+
     @Column({ default: false })
     isResolved: boolean;
 

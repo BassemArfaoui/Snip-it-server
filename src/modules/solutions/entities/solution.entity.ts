@@ -26,8 +26,14 @@ export class Solution extends BaseEntity {
     likesCount: number;
 
     @Column({ default: 0 })
+    dislikesCount: number;
+
+    @Column({ default: 0 })
     commentsCount: number;
 
     @Column({ default: false })
     isDeleted: boolean;
+
+    @Column({ default: false })
+    isAccepted: boolean;
 }
