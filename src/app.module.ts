@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
 import { AuthMiddleware } from './common/middleware/auth.middleware';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { SnippetModule } from './modules/snippet/snippet.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrivateSnippetsModule } from './modules/private-snippets/private-snippets.module';
@@ -16,6 +17,7 @@ import { CollectionsModule } from './modules/collections/collections.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DocsModule } from './docs/docs.module';
 import { ProfileModule } from './modules/profile/profile.module';
 @Module({
   imports: [
@@ -46,17 +48,23 @@ import { ProfileModule } from './modules/profile/profile.module';
     SubscriptionsModule,
     InteractionsModule,
     ProfileModule,
+    DocsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    // Apply logging middleware to all routes first
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+
+    // Apply auth middleware to all routes except public ones
     consumer
       .apply(AuthMiddleware)
       .exclude(
         { path: '/', method: RequestMethod.GET },
         { path: 'auth/*path', method: RequestMethod.ALL },
+        { path: 'docs/api', method: RequestMethod.ALL },
         // message lel team : add any other public routes here
       )
       .forRoutes('*');

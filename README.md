@@ -31,6 +31,17 @@
 $ npm install
 ```
 
+## Environment
+
+Configure the following variables (example values shown) before running the server:
+
+- `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` – secrets for access and refresh tokens (required)
+- `JWT_ACCESS_EXPIRES_IN=15m` – access token lifetime
+- `JWT_REFRESH_EXPIRES_IN=7d` – refresh token lifetime
+- `OTP_TTL_MINUTES=10` and `OTP_LENGTH=6` – email verification OTP settings
+- `BCRYPT_SALT_ROUNDS=10` – hashing cost factor
+- Database settings: `DB_host`, `DB_port`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+
 ## Compile and run the project
 
 ```bash

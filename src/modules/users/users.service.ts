@@ -15,6 +15,10 @@ export class UsersService {
         return this.usersRepository.save(user);
     }
 
+    async save(user: User): Promise<User> {
+        return this.usersRepository.save(user);
+    }
+
     async findOneByEmail(email: string): Promise<User | null> {
         return this.usersRepository.findOne({ where: { email } });
     }
@@ -30,5 +34,44 @@ export class UsersService {
                 { username: identifier },
             ],
         });
+    }
+
+    async findOneWithRefreshToken(userId: number): Promise<User | null> {
+        return this.usersRepository.findOne({
+            where: { id: userId },
+            select: ['id', 'email', 'username', 'refreshTokenHash'],
+        });
+    }
+
+    async updateRefreshToken(userId: number, refreshTokenHash: string | null): Promise<void> {
+        if (refreshTokenHash) {
+            await this.usersRepository.update({ id: userId }, { refreshTokenHash });
+        } else {
+            await this.usersRepository.query(
+                'UPDATE users SET "refreshTokenHash" = NULL WHERE id = $1',
+                [userId],
+            );
+        }
+    }
+
+    async markEmailVerified(userId: number): Promise<void> {
+        await this.usersRepository.update({ id: userId }, {
+            isEmailVerified: true,
+            emailVerifiedAt: new Date(),
+        });
+    }
+
+    async updatePassword(userId: number, hashedPassword: string): Promise<void> {
+        await this.usersRepository.update({ id: userId }, { password: hashedPassword });
+    }
+
+    async findByOAuth(oauthProvider: string, oauthId: string): Promise<User | null> {
+        return this.usersRepository.findOne({
+            where: { oauthProvider, oauthId },
+        });
+    }
+
+    async findById(id: number): Promise<User | null> {
+        return this.usersRepository.findOne({ where: { id } });
     }
 }

@@ -23,11 +23,26 @@ export class User extends BaseEntity {
     @Column()
     fullName: string;
 
+    @Column({ default: false })
+    isEmailVerified: boolean;
+
+    @Column({ type: 'timestamptz', nullable: true })
+    emailVerifiedAt?: Date;
+
+    @Column({ type: 'varchar', nullable: true, select: false })
+    refreshTokenHash?: string | null;
+
     @Column({ nullable: true })
     role: string;
 
     @Column({ nullable: true })
     imageProfile: string;
+
+    @Column({ nullable: true })
+    oauthProvider?: string;
+
+    @Column({ nullable: true })
+    oauthId?: string;
 
     @Column({ default: 0 })
     contributorScore: number;
