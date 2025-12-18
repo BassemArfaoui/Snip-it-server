@@ -42,6 +42,8 @@ export class ProfileService {
 			id: user.id,
 			name: user.fullName,
 			username: user.username,
+			email: user.email,
+			imageProfile: user.imageProfile,
 			followers,
 			followedBy: following,
 			posts: postsCount,
