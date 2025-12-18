@@ -16,6 +16,7 @@ import { CommonModule } from '../../common/common.module';
     CommonModule,
   ],
   providers: [ProfileService],
-  controllers: [ProfileController]
+  controllers: [ProfileController],
+  exports: [ProfileService]
 })
 export class ProfileModule {}

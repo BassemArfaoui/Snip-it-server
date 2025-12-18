@@ -10,12 +10,14 @@ import { UpdateIssueDto } from './dto/update-issue.dto';
 import { IssueResponseDto } from './dto/issue-response.dto';
 import { Issue } from './entities/issue.entity';
 import { User } from '../users/entities/user.entity';
+import { ProfileService } from '../profile/profile.service';
 
 @Injectable()
 export class IssuesService {
   constructor(
     private readonly issueRepository: IssueRepository,
     private readonly dataSource: DataSource,
+    private readonly profileService: ProfileService,
   ) {}
 
   async create(dto: CreateIssueDto, userId: number) {
@@ -28,6 +30,9 @@ export class IssuesService {
       });
 
       const savedIssue = await manager.save(issue);
+
+      // Recalculate contributor score for the user (simple formula)
+      await this.profileService.calculateAndPersistScore(userId);
 
       return savedIssue;
     });
@@ -90,6 +95,9 @@ export class IssuesService {
 
       // Soft delete issue
       await manager.update(Issue, { id: issueId }, { isDeleted: true });
+
+      // Recalculate contributor score for the owner
+      await this.profileService.calculateAndPersistScore(issue.user.id);
 
     });
   }

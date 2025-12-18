@@ -94,6 +94,18 @@ export class ProfileService {
 		return users.map(u => ({ id: u.id, username: u.username, name: u.fullName, score: u.contributorScore ?? 0 }));
 	}
 
+	// Simple score: 3*posts + 2*issues (no followers)
+	async calculateAndPersistScore(userId: number) {
+		const [postsCount, issuesCount] = await Promise.all([
+			this.postsRepo.count({ where: { author: { id: userId } } }),
+			this.issuesRepo.count({ where: { user: { id: userId } } }),
+		]);
+
+		const score = 3 * postsCount + 2 * issuesCount;
+		await this.usersRepo.update({ id: userId }, { contributorScore: score });
+		return score;
+	}
+
 	async updateProfile(userId: number, dto: UpdateProfileDto) {
 		const user = await this.usersRepo.findOne({ where: { id: userId } });
 		if (!user) {
