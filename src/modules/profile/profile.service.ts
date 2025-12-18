@@ -8,6 +8,8 @@ import { Subscription } from '../subscriptions/entities/subscription.entity';
 import { Collection } from '../collections/entities/collection.entity';
 import { CollectionItem } from '../collections/entities/item.entity';
 import { CollectionItemEnum } from '../../common/enums/collection-item.enum';
+import { Solution } from '../solutions/entities/solution.entity';
+import { Comment } from '../comments/entities/comment.entity';
 import { HashingService } from '../../common/services/hashing.service';
 import { UpdatePasswordDto, UpdateProfileDto } from './dto/update-profile.dto';
 
@@ -20,6 +22,8 @@ export class ProfileService {
 		@InjectRepository(Subscription) private readonly subsRepo: Repository<Subscription>,
 		@InjectRepository(Collection) private readonly collectionsRepo: Repository<Collection>,
 		@InjectRepository(CollectionItem) private readonly itemsRepo: Repository<CollectionItem>,
+		@InjectRepository(Solution) private readonly solutionsRepo: Repository<Solution>,
+		@InjectRepository(Comment) private readonly commentsRepo: Repository<Comment>,
 		private readonly hashingService: HashingService,
 	) {}
 
@@ -82,7 +86,85 @@ export class ProfileService {
 	}
 
 	async getContributionGraph(userId: number) {
-		return null;
+		const oneYearAgo = new Date();
+		oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+		// Fetch all contributions from the past year
+		const [posts, issues, solutions, comments] = await Promise.all([
+			this.postsRepo
+				.createQueryBuilder('post')
+				.select("DATE(post.\"createdAt\")", 'date')
+				.addSelect('COUNT(*)::int', 'count')
+				.leftJoin('post.author', 'author')
+				.where('author.id = :userId', { userId })
+				.andWhere('post.createdAt >= :oneYearAgo', { oneYearAgo })
+				.groupBy('DATE(post.\"createdAt\")')
+				.getRawMany(),
+			this.issuesRepo
+				.createQueryBuilder('issue')
+				.select("DATE(issue.\"createdAt\")", 'date')
+				.addSelect('COUNT(*)::int', 'count')
+				.leftJoin('issue.user', 'user')
+				.where('user.id = :userId', { userId })
+				.andWhere('issue.createdAt >= :oneYearAgo', { oneYearAgo })
+				.groupBy('DATE(issue.\"createdAt\")')
+				.getRawMany(),
+			this.solutionsRepo
+				.createQueryBuilder('solution')
+				.select("DATE(solution.\"createdAt\")", 'date')
+				.addSelect('COUNT(*)::int', 'count')
+				.leftJoin('solution.contributor', 'contributor')
+				.where('contributor.id = :userId', { userId })
+				.andWhere('solution.createdAt >= :oneYearAgo', { oneYearAgo })
+				.groupBy('DATE(solution.\"createdAt\")')
+				.getRawMany(),
+			this.commentsRepo
+				.createQueryBuilder('comment')
+				.select("DATE(comment.\"createdAt\")", 'date')
+				.addSelect('COUNT(*)::int', 'count')
+				.leftJoin('comment.user', 'user')
+				.where('user.id = :userId', { userId })
+				.andWhere('comment.createdAt >= :oneYearAgo', { oneYearAgo })
+				.groupBy('DATE(comment.\"createdAt\")')
+				.getRawMany(),
+		]);
+
+		// Aggregate counts by date
+		const contributionMap = new Map<string, number>();
+
+		const addToMap = (entries: Array<{ date: any; count: any }>) => {
+			for (const entry of entries) {
+				// PostgreSQL ::date returns date string like '2024-12-18' or Date object
+				let dateStr: string;
+				if (entry.date instanceof Date) {
+					dateStr = entry.date.toISOString().split('T')[0];
+				} else {
+					dateStr = String(entry.date).split('T')[0];
+				}
+				const count = parseInt(String(entry.count), 10);
+				contributionMap.set(dateStr, (contributionMap.get(dateStr) || 0) + count);
+			}
+		};
+
+		addToMap(posts);
+		addToMap(issues);
+		addToMap(solutions);
+		addToMap(comments);
+
+		// Generate array of {date, count} for all days in the past year
+		const result: Array<{ date: string; count: number }> = [];
+		const today = new Date();
+		for (let i = 365; i >= 0; i--) {
+			const date = new Date(today);
+			date.setDate(date.getDate() - i);
+			const dateStr = date.toISOString().split('T')[0];
+			result.push({
+				date: dateStr,
+				count: contributionMap.get(dateStr) || 0,
+			});
+		}
+
+		return result;
 	}
 
 	async getStreak(userId: number) {

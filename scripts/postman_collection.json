@@ -432,7 +432,7 @@
             "method": "GET",
             "header": [],
             "url": "{{base_url}}/profile/{{userId}}/contrubution_graph",
-            "description": "Get user contribution graph."
+            "description": "Get user contribution graph for the past year. Returns array of {date, count} objects showing daily activity (posts, issues, solutions, comments)."
           }
         },
         {
