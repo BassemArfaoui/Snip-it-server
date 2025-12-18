@@ -396,7 +396,7 @@
               "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
             },
             "url": "{{base_url}}/profile/{{userId}}/saved_posts",
-            "description": "Get saved posts for a user (own posts only with auth)."
+            "description": "Get saved posts for a user. Requires bearer token and only returns when requesting your own userId."
           }
         },
         {
@@ -451,6 +451,37 @@
             "header": [],
             "url": "{{base_url}}/profile/1/leader_board",
             "description": "Get global leaderboard (user id parameter ignored)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Follow User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "url": "{{base_url}}/subscriptions/{{targetUserId}}",
+            "description": "Follow another user by ID. Cannot follow yourself; idempotent if already following."
+          }
+        },
+        {
+          "name": "Unfollow User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "url": "{{base_url}}/subscriptions/{{targetUserId}}",
+            "description": "Unfollow a user by ID. Idempotent if not currently following."
           }
         }
       ]
@@ -514,6 +545,12 @@
       "value": "1",
       "type": "string",
       "description": "Solution ID for testing (auto-set after creating solution)"
+    },
+    {
+      "key": "targetUserId",
+      "value": "2",
+      "type": "string",
+      "description": "User ID to follow/unfollow"
     }
   ]
 }

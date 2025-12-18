@@ -51,6 +51,9 @@ export class User extends BaseEntity {
     subscriberCount: number;
 
     @Column({ default: 0 })
+    followingCount: number;
+
+    @Column({ default: 0 })
     postsCount: number;
 
     @Column({ default: 0 })
