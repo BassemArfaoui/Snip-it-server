@@ -59,8 +59,9 @@ export class ProfileController {
 	}
 
 	@Get(':id/leader_board')
-	async getLeaderBoard() {
-		return this.profileService.getLeaderBoard();
+	async getLeaderBoard(@Param('id') id: string) {
+		// Note: id parameter is ignored for global leaderboard
+		return this.profileService.getLeaderBoard(100);
 	}
 
 	@Patch()

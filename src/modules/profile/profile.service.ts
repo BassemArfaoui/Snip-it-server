@@ -230,9 +230,22 @@ export class ProfileService {
 		};
 	}
 
-	async getLeaderBoard() {
-		const users = await this.usersRepo.find({ order: { contributorScore: 'DESC' } });
-		return users.map(u => ({ id: u.id, username: u.username, name: u.fullName, score: u.contributorScore ?? 0 }));
+	async getLeaderBoard(limit: number = 100) {
+		const users = await this.usersRepo.find({ 
+			order: { contributorScore: 'DESC' },
+			take: limit,
+		});
+
+		return users.map((u, index) => ({
+			rank: index + 1,
+			id: u.id,
+			username: u.username,
+			name: u.fullName,
+			score: u.contributorScore ?? 0,
+			postsCount: u.postsCount ?? 0,
+			followers: u.subscriberCount ?? 0,
+			imageProfile: u.imageProfile,
+		}));
 	}
 
 	// Simple score: 3*posts + 2*issues (no followers)
