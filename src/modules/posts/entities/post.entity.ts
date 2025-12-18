@@ -1,7 +1,8 @@
-import { Entity, Column, ManyToOne, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Snippet } from '../../snippet/entities/snippet.entity';
 import { User } from '../../users/entities/user.entity';
+import { SuggestedPost } from '../../suggested-posts/entities/suggested-post.entity';
 
 @Entity('posts')
 export class Post extends BaseEntity {
@@ -33,4 +34,7 @@ export class Post extends BaseEntity {
 
     @Column({ default: false })
     isDeleted: boolean;
+
+    @OneToMany(() => SuggestedPost, sp => sp.post)
+    suggestedFor: SuggestedPost[];
 }

@@ -19,6 +19,7 @@ import { InteractionsModule } from './modules/interactions/interactions.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DocsModule } from './docs/docs.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { SuggestedPostsModule } from './modules/suggested-posts/suggested-posts.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -49,6 +50,7 @@ import { ProfileModule } from './modules/profile/profile.module';
     InteractionsModule,
     ProfileModule,
     DocsModule,
+    SuggestedPostsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
