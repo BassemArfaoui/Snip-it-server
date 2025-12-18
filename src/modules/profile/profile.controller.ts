@@ -1,6 +1,8 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, ForbiddenException, ParseIntPipe } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../issues/auth/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @UseGuards(JwtAuthGuard)
 @Controller('profile')
@@ -14,10 +16,15 @@ export class ProfileController {
 	}
 
 	@Get(':id/saved_posts')
-	async getSavedPosts(@Param('id') id: string, @Req() req: any) {
-		const userId = Number(id);
-		const currentUserId = req['user']?.userId as number;
-		return this.profileService.getSavedPosts(userId, currentUserId);
+	async getSavedPosts(
+		@Param('id', ParseIntPipe) id: number,
+		@CurrentUser() user: User,
+	) {
+		if (user?.id !== id) {
+			throw new ForbiddenException('You can only view your own saved posts');
+		}
+
+		return this.profileService.getSavedPosts(id, user.id);
 	}
 
 	@Get(':id/bagdes')
