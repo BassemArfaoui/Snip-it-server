@@ -12,6 +12,7 @@ import { CollectionItem } from '../../src/modules/collections/entities/item.enti
 import { Subscription } from '../../src/modules/subscriptions/entities/subscription.entity';
 import { Interaction } from '../../src/modules/interactions/entities/interaction.entity';
 import { PrivateSnippet } from '../../src/modules/private-snippets/entities/private-snippet.entity';
+import { SuggestedPost } from '../../src/modules/suggested-posts/entities/suggested-post.entity';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -42,6 +43,7 @@ import { ConfigModule } from '@nestjs/config';
             Subscription,
             Interaction,
             PrivateSnippet,
+            SuggestedPost,
         ]),
     ],
     providers: [SeedService],
