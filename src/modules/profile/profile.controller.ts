@@ -1,8 +1,9 @@
-import { Controller, Get, Param, UseGuards, ForbiddenException, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, ForbiddenException, ParseIntPipe, Patch, Body } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../issues/auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { UpdatePasswordDto, UpdateProfileDto } from './dto/update-profile.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('profile')
@@ -60,5 +61,21 @@ export class ProfileController {
 	@Get(':id/leader_board')
 	async getLeaderBoard() {
 		return this.profileService.getLeaderBoard();
+	}
+
+	@Patch()
+	async updateProfile(
+		@Body() dto: UpdateProfileDto,
+		@CurrentUser() user: User,
+	) {
+		return this.profileService.updateProfile(user.id, dto);
+	}
+
+	@Patch('password')
+	async updatePassword(
+		@Body() dto: UpdatePasswordDto,
+		@CurrentUser() user: User,
+	) {
+		return this.profileService.updatePassword(user.id, dto);
 	}
 }

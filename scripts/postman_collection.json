@@ -452,6 +452,40 @@
             "url": "{{base_url}}/profile/1/leader_board",
             "description": "Get global leaderboard (user id parameter ignored)."
           }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newusername\",\n  \"email\": \"newemail@example.com\",\n  \"imageProfile\": \"https://example.com/new-avatar.png\"\n}"
+            },
+            "url": "{{base_url}}/profile",
+            "description": "Update your own profile (username, email, or profile picture). All fields optional. Email change requires re-verification."
+          }
+        },
+        {
+          "name": "Update Password",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newPassword456\"\n}"
+            },
+            "url": "{{base_url}}/profile/password",
+            "description": "Update your own password. Requires current password. Invalidates all refresh tokens."
+          }
         }
       ]
     },
