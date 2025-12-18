@@ -168,7 +168,66 @@ export class ProfileService {
 	}
 
 	async getStreak(userId: number) {
-		return null;
+		// Get contribution graph data (reuses existing logic)
+		const contributionData = await this.getContributionGraph(userId);
+		
+		// Extract dates with activity (count > 0)
+		const activeDates = contributionData
+			.filter(day => day.count > 0)
+			.map(day => day.date)
+			.sort();
+
+		if (activeDates.length === 0) {
+			return { currentStreak: 0, longestStreak: 0, totalContributions: 0 };
+		}
+
+		// Calculate current streak (from today or yesterday backwards)
+		const today = new Date();
+		const todayStr = today.toISOString().split('T')[0];
+		const yesterday = new Date(today);
+		yesterday.setDate(yesterday.getDate() - 1);
+		const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+		let currentStreak = 0;
+		const activeDatesSet = new Set(activeDates);
+
+		// Start from today if there's activity, otherwise yesterday
+		let checkDate = activeDatesSet.has(todayStr) ? new Date(today) : new Date(yesterday);
+		let checkDateStr = checkDate.toISOString().split('T')[0];
+
+		// Count consecutive days backwards
+		while (activeDatesSet.has(checkDateStr)) {
+			currentStreak++;
+			checkDate.setDate(checkDate.getDate() - 1);
+			checkDateStr = checkDate.toISOString().split('T')[0];
+		}
+
+		// Calculate longest streak
+		let longestStreak = 1;
+		let tempStreak = 1;
+
+		for (let i = 1; i < activeDates.length; i++) {
+			const prevDate = new Date(activeDates[i - 1]);
+			const currDate = new Date(activeDates[i]);
+			const dayDiff = Math.round((currDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+
+			if (dayDiff === 1) {
+				tempStreak++;
+			} else {
+				longestStreak = Math.max(longestStreak, tempStreak);
+				tempStreak = 1;
+			}
+		}
+		longestStreak = Math.max(longestStreak, tempStreak);
+
+		const totalContributions = contributionData.reduce((sum, day) => sum + day.count, 0);
+
+		return {
+			currentStreak,
+			longestStreak,
+			lastContributionDate: activeDates[activeDates.length - 1],
+			totalContributions,
+		};
 	}
 
 	async getLeaderBoard() {
