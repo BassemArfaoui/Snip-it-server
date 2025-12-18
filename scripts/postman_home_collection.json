@@ -1,0 +1,70 @@
+{
+    "info": {
+        "_postman_id": "c5c4f6f8-1234-4dcb-9b77-0b11a1c2d3e4",
+        "name": "Home Collection",
+        "description": "Home page calls: whoami and suggested posts",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Who Am I",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "http://localhost:3000/whoami",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["whoami"]
+                },
+                "description": "Returns the authenticated user's id via AuthMiddleware."
+            },
+            "response": []
+        },
+        {
+            "name": "Suggested Posts (me)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "http://localhost:3000/suggested-posts/me",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["suggested-posts", "me"]
+                },
+                "description": "Returns suggested posts for the current user."
+            },
+            "response": []
+        }
+    ],
+    "variable": [
+        {
+            "key": "jwt_token",
+            "value": "",
+            "type": "string",
+            "description": "Paste a valid JWT access token"
+        }
+    ]
+}
