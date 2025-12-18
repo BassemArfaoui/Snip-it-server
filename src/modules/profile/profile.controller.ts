@@ -1,6 +1,8 @@
-import { Controller, Get, Param, Req } from '@nestjs/common';
+import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
 import { ProfileService } from './profile.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('profile')
 export class ProfileController {
 	constructor(private readonly profileService: ProfileService) {}
