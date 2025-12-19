@@ -30,6 +30,221 @@
                 },
                 "description": "Returns the authenticated user's id via AuthMiddleware."
             },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"body has userId\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(json).to.have.property('userId');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "response": []
+        },
+        {
+            "name": "Posts (paginated)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:3000/posts",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["posts"]
+                },
+                "description": "Returns paginated posts for the home feed (public)."
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"response has data array and meta\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(json).to.have.property('data');",
+                            "    pm.expect(json.data).to.be.an('array');",
+                            "    pm.expect(json).to.have.property('meta');",
+                            "    pm.expect(json.meta).to.have.property('page');",
+                            "    pm.expect(json.meta).to.have.property('limit');",
+                            "});",
+                            "pm.test(\"post items include expected fields when present\", function () {",
+                            "    const json = pm.response.json();",
+                            "    if (!json.data.length) {",
+                            "        return;",
+                            "    }",
+                            "    const post = json.data[0];",
+                            "    pm.expect(post).to.have.property('id');",
+                            "    pm.collectionVariables.set('post_id', String(post.id));",
+                            "    pm.expect(post).to.have.property('title');",
+                            "    pm.expect(post).to.have.property('description');",
+                            "    pm.expect(post).to.have.property('author');",
+                            "    pm.expect(post).to.have.property('snippet');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "response": []
+        },
+        {
+            "name": "Create Post",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"title\": \"Home feed test post\",\n  \"description\": \"Created from postman_home_collection\",\n  \"snippetContent\": \"console.log('hello');\",\n  \"snippetLanguage\": \"javascript\",\n  \"snippetTitle\": \"hello\",\n  \"githubLink\": \"https://github.com/example/repo\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:3000/posts",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["posts"]
+                },
+                "description": "Creates a post (requires JWT). Stores created id in collection variable post_id."
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 201 or 200\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                            "});",
+                            "pm.test(\"response includes created post id\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(json).to.have.property('id');",
+                            "    pm.collectionVariables.set('post_id', String(json.id));",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "response": []
+        },
+        {
+            "name": "Get Post (by id)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:3000/posts/{{post_id}}",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["posts", "{{post_id}}"]
+                },
+                "description": "Gets a single post by id (public). Requires post_id (set by Create Post or Posts (paginated))."
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"response has id/title/author/snippet\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('post_id')));",
+                            "    pm.expect(json).to.have.property('title');",
+                            "    pm.expect(json).to.have.property('author');",
+                            "    pm.expect(json).to.have.property('snippet');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "response": []
+        },
+        {
+            "name": "Update Post",
+            "request": {
+                "method": "PATCH",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"title\": \"Home feed test post (updated)\",\n  \"snippetContent\": \"console.log('updated');\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:3000/posts/{{post_id}}",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["posts", "{{post_id}}"]
+                },
+                "description": "Updates a post (requires JWT for the author)."
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"updated fields are reflected\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('post_id')));",
+                            "    pm.expect(json.title).to.eql('Home feed test post (updated)');",
+                            "    pm.expect(json).to.have.property('snippet');",
+                            "    if (json.snippet && json.snippet.content !== undefined) {",
+                            "        pm.expect(json.snippet.content).to.eql(\"console.log('updated');\");",
+                            "    }",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
             "response": []
         },
         {
@@ -48,7 +263,7 @@
                     ]
                 },
                 "url": {
-                    "raw": "http://localhost:3000/suggested-posts/me",
+                    "raw": "http://localhost:3000/suggested-posts",
                     "protocol": "http",
                     "host": ["localhost"],
                     "port": "3000",
@@ -56,6 +271,25 @@
                 },
                 "description": "Returns suggested posts for the current user."
             },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"response has data array and meta\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(json).to.have.property('data');",
+                            "    pm.expect(json.data).to.be.an('array');",
+                            "    pm.expect(json).to.have.property('meta');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
             "response": []
         }
     ],
@@ -65,6 +299,12 @@
             "value": "",
             "type": "string",
             "description": "Paste a valid JWT access token"
+        },
+        {
+            "key": "post_id",
+            "value": "",
+            "type": "string",
+            "description": "Post id used by Get/Update Post (auto-set by Posts (paginated) or Create Post)"
         }
     ]
 }
