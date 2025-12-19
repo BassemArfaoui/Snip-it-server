@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne } from 'typeorm';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
+import { ReactionTypeEnum  }  from '../../../common/enums/reaction-emoji.enum';
 
 @Entity('interactions')
 export class Interaction extends BaseEntity {
@@ -12,7 +13,7 @@ export class Interaction extends BaseEntity {
 
     @Column()
     targetType: string; // POST | ISSUE | SOLUTION | COMMENT
-
-    @Column()
-    type: string; // LIKE | DISLIKE
+    
+    @Column({ type: 'enum', enum: ReactionTypeEnum })
+    type: ReactionTypeEnum;
 }
