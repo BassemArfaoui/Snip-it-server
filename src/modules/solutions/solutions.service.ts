@@ -11,12 +11,14 @@ import { UpdateSolutionDto } from './dto/update-solution.dto';
 import { Issue } from '../issues/entities/issue.entity';
 import { User } from '../users/entities/user.entity';
 import { Solution } from './entities/solution.entity';
+import { ProfileService } from '../profile/profile.service';
 
 @Injectable()
 export class SolutionsService {
   constructor(
     private readonly solutionRepo: SolutionRepository,
     private readonly dataSource: DataSource,
+    private readonly profileService: ProfileService,
   ) {}
 
   async create(
@@ -72,6 +74,9 @@ export class SolutionsService {
         'solutionsCount',
         1,
       );
+
+      // Recalculate contributor score based on actual data
+      await this.profileService.calculateAndPersistScore(contributor.id);
 
       // TODO: Send notification to issue owner
       // await this.notificationService.notifyNewSolution(issue.user.id, savedSolution);
@@ -158,6 +163,9 @@ export class SolutionsService {
         'solutionsCount',
         1,
       );
+
+      // Recalculate contributor score based on actual data
+      await this.profileService.calculateAndPersistScore(solution.contributor.id);
     });
   }
 
@@ -198,6 +206,9 @@ export class SolutionsService {
         'contributorScore',
         5, // Bonus points for accepted solution
       );
+
+      // Recalculate contributor score based on actual data
+      await this.profileService.calculateAndPersistScore(solution.contributor.id);
 
       // TODO: Send notification to contributor
       // await this.notificationService.notifySolutionAccepted(solution.contributor.id, solution);

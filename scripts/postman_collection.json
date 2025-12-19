@@ -1,376 +1,590 @@
 {
-    "info": {
-        "_postman_id": "b6a8c9d0-1e2f-4a3b-8c4d-5e6f7a8b9c0d",
-        "name": "Web Project API",
-        "description": "Collection to test Web Project API endpoints, including the protected posts route.",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  "info": {
+    "_postman_id": "5f7d8a1b-245e-42a9-90b1-6c4a52e5d8f2",
+    "name": "Snip-it API - Full Collection",
+    "description": "Complete API collection for Snip-it backend with authentication, issues, solutions, posts, profiles, and votes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health & Docs",
+      "item": [
+        {
+          "name": "Root Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/"
+          }
+        },
+        {
+          "name": "API Documentation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/docs/api"
+          }
+        }
+      ]
     },
-    "item": [
+    {
+      "name": "Authentication",
+      "item": [
         {
-            "name": "Get Posts (Protected)",
-            "request": {
-                "method": "GET",
-                "header": [],
-                "auth": {
-                    "type": "bearer",
-                    "bearer": [
-                        {
-                            "key": "token",
-                            "value": "{{jwt_token}}",
-                            "type": "string"
-                        }
-                    ]
-                },
-                "url": {
-                    "raw": "http://localhost:3000/posts",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "3000",
-                    "path": [
-                        "posts"
-                    ]
-                },
-                "description": "Fetches posts. Requires a valid JWT token in the 'jwt_token' collection variable."
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response && response.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', response.refreshToken || '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser{{$timestamp}}@example.com\",\n  \"password\": \"password123\",\n  \"username\": \"testuser{{$randomInt}}\",\n  \"fullName\": \"Test User\",\n  \"role\": \"user\",\n  \"imageProfile\": \"https://example.com/avatar.png\"\n}"
             },
-            "response": []
+            "url": "{{base_url}}/auth/register",
+            "description": "Register a new user. Email and username must be unique; password minimum 8 characters."
+          }
         },
         {
-            "name": "Register User",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json",
-                        "type": "text"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\",\n    \"username\": \"testuser\",\n    \"fullName\": \"Test User\"\n}"
-                },
-                "url": {
-                    "raw": "http://localhost:3000/auth/register",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "3000",
-                    "path": [
-                        "auth",
-                        "register"
-                    ]
-                },
-                "description": "Registers a new user."
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response && response.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', response.refreshToken || '');",
+                  "  pm.collectionVariables.set('userId', response.user?.id || '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"testuser@example.com\",\n  \"password\": \"password123\"\n}"
             },
-            "response": []
+            "url": "{{base_url}}/auth/login",
+            "description": "Login with email/username and password. Returns accessToken and refreshToken."
+          }
         },
         {
-            "name": "Login User",
-            "request": {
-                "method": "POST",
-                "header": [
-                    {
-                        "key": "Content-Type",
-                        "value": "application/json",
-                        "type": "text"
-                    }
-                ],
-                "body": {
-                    "mode": "raw",
-                    "raw": "{\n    \"identifier\": \"test@example.com\",\n    \"password\": \"password123\"\n}"
-                },
-                "url": {
-                    "raw": "http://localhost:3000/auth/login",
-                    "protocol": "http",
-                    "host": [
-                        "localhost"
-                    ],
-                    "port": "3000",
-                    "path": [
-                        "auth",
-                        "login"
-                    ]
-                },
-                "description": "Logs in a user and returns a JWT token."
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"otp\": \"000000\"\n}"
             },
-            "response": []
+            "url": "{{base_url}}/auth/verify-email",
+            "description": "Verify email with 6-digit OTP code."
+          }
         },
         {
-            "name": "Profile",
-            "item": [
-                {
-                    "name": "Get Profile Summary",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{jwt_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "http://localhost:3000/profile/{{user_id}}",
-                            "protocol": "http",
-                            "host": [
-                                "localhost"
-                            ],
-                            "port": "3000",
-                            "path": [
-                                "profile",
-                                "{{user_id}}"
-                            ]
-                        },
-                        "description": "Returns name, username, followers, followedBy, posts, issues, and score for the user."
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get Saved Posts (Own Only)",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{jwt_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "http://localhost:3000/profile/{{user_id}}/saved_posts",
-                            "protocol": "http",
-                            "host": [
-                                "localhost"
-                            ],
-                            "port": "3000",
-                            "path": [
-                                "profile",
-                                "{{user_id}}",
-                                "saved_posts"
-                            ]
-                        },
-                        "description": "Returns posts saved by the current user. Only visible if the token belongs to {{user_id}}; otherwise returns an empty array."
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get Badges",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{jwt_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "http://localhost:3000/profile/{{user_id}}/bagdes",
-                            "protocol": "http",
-                            "host": [
-                                "localhost"
-                            ],
-                            "port": "3000",
-                            "path": [
-                                "profile",
-                                "{{user_id}}",
-                                "bagdes"
-                            ]
-                        },
-                        "description": "Returns [] for now (badges to be implemented)."
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get User Posts",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{jwt_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "http://localhost:3000/profile/{{user_id}}/posts",
-                            "protocol": "http",
-                            "host": [
-                                "localhost"
-                            ],
-                            "port": "3000",
-                            "path": [
-                                "profile",
-                                "{{user_id}}",
-                                "posts"
-                            ]
-                        },
-                        "description": "Returns posts authored by the user."
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get User Issues",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{jwt_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "http://localhost:3000/profile/{{user_id}}/issues",
-                            "protocol": "http",
-                            "host": [
-                                "localhost"
-                            ],
-                            "port": "3000",
-                            "path": [
-                                "profile",
-                                "{{user_id}}",
-                                "issues"
-                            ]
-                        },
-                        "description": "Returns issues published by the user."
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get Contribution Graph",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{jwt_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "http://localhost:3000/profile/{{user_id}}/contrubution_graph",
-                            "protocol": "http",
-                            "host": [
-                                "localhost"
-                            ],
-                            "port": "3000",
-                            "path": [
-                                "profile",
-                                "{{user_id}}",
-                                "contrubution_graph"
-                            ]
-                        },
-                        "description": "Returns null for now (to be implemented)."
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get Streak",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{jwt_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "http://localhost:3000/profile/{{user_id}}/streak",
-                            "protocol": "http",
-                            "host": [
-                                "localhost"
-                            ],
-                            "port": "3000",
-                            "path": [
-                                "profile",
-                                "{{user_id}}",
-                                "streak"
-                            ]
-                        },
-                        "description": "Returns null for now (to be implemented)."
-                    },
-                    "response": []
-                },
-                {
-                    "name": "Get Leader Board",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{jwt_token}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "http://localhost:3000/profile/{{user_id}}/leader_board",
-                            "protocol": "http",
-                            "host": [
-                                "localhost"
-                            ],
-                            "port": "3000",
-                            "path": [
-                                "profile",
-                                "{{user_id}}",
-                                "leader_board"
-                            ]
-                        },
-                        "description": "Returns users ordered by contributorScore (leaderboard)."
-                    },
-                    "response": []
-                }
-            ]
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\"\n}"
+            },
+            "url": "{{base_url}}/auth/resend-otp",
+            "description": "Resend OTP to email address."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{base_url}}/auth/refresh",
+            "description": "Refresh access token using refresh token."
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\"\n}"
+            },
+            "url": "{{base_url}}/auth/forgot-password",
+            "description": "Send password reset email."
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"token\": \"reset_token_from_email\",\n  \"newPassword\": \"newPassword123\"\n}"
+            },
+            "url": "{{base_url}}/auth/reset-password",
+            "description": "Reset password with token from email."
+          }
+        },
+        {
+          "name": "GitHub Auth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/auth/github",
+            "description": "Initiate GitHub OAuth login flow."
+          }
+        },
+        {
+          "name": "GitHub Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/auth/github/callback",
+            "description": "GitHub OAuth callback handler (handled by GitHub)."
+          }
         }
-    ],
-    "variable": [
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
         {
-            "key": "jwt_token",
-            "value": "",
-            "type": "string",
-            "description": "Paste the JWT token generated by 'npm run create-token' here"
+          "name": "Get All Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "url": "{{base_url}}/posts",
+            "description": "Get all posts (protected route)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Issues",
+      "item": [
+        {
+          "name": "Create Issue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response && response.id) {",
+                  "  pm.collectionVariables.set('issueId', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"This is a test issue with more than 10 characters\",\n  \"language\": \"JavaScript\"\n}"
+            },
+            "url": "{{base_url}}/issues",
+            "description": "Create a new issue (requires authentication). Minimum 10 characters content."
+          }
         },
         {
-            "key": "user_id",
-            "value": "1",
-            "type": "string",
-            "description": "User id to use in profile endpoints (e.g., 1)"
+          "name": "Get All Issues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/issues?language=JavaScript&is_resolved=false&page=1&limit=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["issues"],
+              "query": [
+                {"key": "language", "value": "JavaScript"},
+                {"key": "is_resolved", "value": "false"},
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"}
+              ]
+            },
+            "description": "Get all issues with filters. Query params: language, is_resolved, page, limit."
+          }
+        },
+        {
+          "name": "Get Single Issue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/issues/{{issueId}}",
+            "description": "Get a specific issue by ID."
+          }
+        },
+        {
+          "name": "Update Issue",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated issue content with more than 10 characters\",\n  \"language\": \"Python\"\n}"
+            },
+            "url": "{{base_url}}/issues/{{issueId}}",
+            "description": "Update an issue (must be issue owner)."
+          }
+        },
+        {
+          "name": "Delete Issue",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "url": "{{base_url}}/issues/{{issueId}}",
+            "description": "Delete an issue (must be issue owner)."
+          }
         }
-    ]
+      ]
+    },
+    {
+      "name": "Solutions",
+      "item": [
+        {
+          "name": "Create Solution",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response && response.id) {",
+                  "  pm.collectionVariables.set('solutionId', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"This is a solution with more than 10 characters\",\n  \"externalLink\": \"https://example.com/solution\"\n}"
+            },
+            "url": "{{base_url}}/issues/{{issueId}}/solutions",
+            "description": "Create a solution for an issue. Either textContent or externalLink required (min 10 chars)."
+          }
+        },
+        {
+          "name": "Get Issue Solutions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/issues/{{issueId}}/solutions",
+            "description": "Get all solutions for a specific issue."
+          }
+        },
+        {
+          "name": "Update Solution",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"Updated solution content with more than 10 characters\"\n}"
+            },
+            "url": "{{base_url}}/solutions/{{solutionId}}",
+            "description": "Update a solution (must be solution contributor)."
+          }
+        },
+        {
+          "name": "Accept Solution",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "url": "{{base_url}}/solutions/{{solutionId}}/accept",
+            "description": "Accept a solution as the best one (must be issue owner)."
+          }
+        },
+        {
+          "name": "Delete Solution",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "url": "{{base_url}}/solutions/{{solutionId}}",
+            "description": "Delete a solution (must be solution contributor)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/profile/{{userId}}",
+            "description": "Get user profile summary by user ID."
+          }
+        },
+        {
+          "name": "Get Saved Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "url": "{{base_url}}/profile/{{userId}}/saved_posts",
+            "description": "Get saved posts for a user. Requires bearer token and only returns when requesting your own userId."
+          }
+        },
+        {
+          "name": "Get Badges",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/profile/{{userId}}/bagdes",
+            "description": "Get user badges by user ID."
+          }
+        },
+        {
+          "name": "Get User Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/profile/{{userId}}/posts",
+            "description": "Get all posts created by a user."
+          }
+        },
+        {
+          "name": "Get User Issues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/profile/{{userId}}/issues",
+            "description": "Get all issues created by a user."
+          }
+        },
+        {
+          "name": "Get Contribution Graph",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/profile/{{userId}}/contrubution_graph",
+            "description": "Get user contribution graph for the past year. Returns array of {date, count} objects showing daily activity (posts, issues, solutions, comments)."
+          }
+        },
+        {
+          "name": "Get Streak",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/profile/{{userId}}/streak",
+            "description": "Get user contribution streak."
+          }
+        },
+        {
+          "name": "Get Leader Board",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/profile/1/leader_board",
+            "description": "Get global leaderboard (user id parameter ignored)."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"newusername\",\n  \"email\": \"newemail@example.com\",\n  \"imageProfile\": \"https://example.com/new-avatar.png\"\n}"
+            },
+            "url": "{{base_url}}/profile",
+            "description": "Update your own profile (username, email, or profile picture). All fields optional. Email change requires re-verification."
+          }
+        },
+        {
+          "name": "Update Password",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newPassword456\"\n}"
+            },
+            "url": "{{base_url}}/profile/password",
+            "description": "Update your own password. Requires current password. Invalidates all refresh tokens."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Follow User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "url": "{{base_url}}/subscriptions/{{targetUserId}}",
+            "description": "Follow another user by ID. Cannot follow yourself; idempotent if already following."
+          }
+        },
+        {
+          "name": "Unfollow User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "url": "{{base_url}}/subscriptions/{{targetUserId}}",
+            "description": "Unfollow a user by ID. Idempotent if not currently following."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Votes",
+      "item": [
+        {
+          "name": "Vote on Content",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetId\": 1,\n  \"targetType\": \"solution\",\n  \"isDislike\": false\n}"
+            },
+            "url": "{{base_url}}/votes",
+            "description": "Vote on content (like/dislike). targetType: 'issue', 'solution', 'post', etc. isDislike: true for downvote, false for upvote."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Backend server URL"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token (auto-set after login/register)"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT refresh token (auto-set after login/register)"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string",
+      "description": "Current user ID (auto-set after login/register)"
+    },
+    {
+      "key": "issueId",
+      "value": "1",
+      "type": "string",
+      "description": "Issue ID for testing (auto-set after creating issue)"
+    },
+    {
+      "key": "solutionId",
+      "value": "1",
+      "type": "string",
+      "description": "Solution ID for testing (auto-set after creating solution)"
+    },
+    {
+      "key": "targetUserId",
+      "value": "2",
+      "type": "string",
+      "description": "User ID to follow/unfollow"
+    }
+  ]
 }
