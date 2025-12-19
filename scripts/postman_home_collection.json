@@ -460,6 +460,529 @@
             ]
         },
         {
+            "name": "Interactions",
+            "item": [
+                {
+                    "name": "Create Interaction (post HEART)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"POST\",\n  \"targetId\": {{post_id}},\n  \"type\": \"HEART\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Creates a HEART interaction on a post (requires JWT). Stores created id in collection variable interaction_id."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "const postId = pm.collectionVariables.get('post_id');",
+                                    "if (!postId) {",
+                                    "    pm.collectionVariables.set('post_id', '1');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response includes created interaction id\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.expect(json).to.have.property('type');",
+                                    "    pm.expect(json).to.have.property('targetType');",
+                                    "    pm.expect(json).to.have.property('targetId');",
+                                    "    pm.collectionVariables.set('interaction_id', String(json.id));",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (issue HELPFUL)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"ISSUE\",\n  \"targetId\": 1,\n  \"type\": \"HELPFUL\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Creates a HELPFUL interaction on an issue (requires JWT)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response has expected fields\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.expect(json.type).to.eql('HELPFUL');",
+                                    "    pm.expect(json.targetType).to.eql('ISSUE');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (solution INCORRECT)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"SOLUTION\",\n  \"targetId\": 1,\n  \"type\": \"INCORRECT\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Creates an INCORRECT interaction on a solution (requires JWT)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response has expected fields\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.expect(json.type).to.eql('INCORRECT');",
+                                    "    pm.expect(json.targetType).to.eql('SOLUTION');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (comment FUNNY)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"COMMENT\",\n  \"targetId\": {{comment_id}},\n  \"type\": \"FUNNY\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Creates a FUNNY interaction on a comment (requires JWT)."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "const commentId = pm.collectionVariables.get('comment_id');",
+                                    "if (!commentId) {",
+                                    "    pm.collectionVariables.set('comment_id', '1');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response has expected fields\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.expect(json.type).to.eql('FUNNY');",
+                                    "    pm.expect(json.targetType).to.eql('COMMENT');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Update Interaction (to FIRE)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"FIRE\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions/{{interaction_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions", "{{interaction_id}}"]
+                        },
+                        "description": "Updates an interaction type (requires JWT, owner only)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"updated type is reflected\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('interaction_id')));",
+                                    "    pm.expect(json.type).to.eql('FIRE');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Update Interaction (forbidden - other user)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token_2}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"HEART\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions/{{interaction_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions", "{{interaction_id}}"]
+                        },
+                        "description": "Attempts to update an interaction as a different user. Set jwt_token_2 to a different user's JWT to validate 403."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const token2 = pm.collectionVariables.get('jwt_token_2');",
+                                    "if (!token2) {",
+                                    "    console.log('jwt_token_2 not set; skipping forbidden assertion');",
+                                    "    return;",
+                                    "}",
+                                    "pm.test(\"status is 403\", function () {",
+                                    "    pm.response.to.have.status(403);",
+                                    "});",
+                                    "pm.test(\"error message indicates ownership\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(JSON.stringify(json)).to.include('not the owner');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Delete Interaction",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions/{{interaction_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions", "{{interaction_id}}"]
+                        },
+                        "description": "Deletes an interaction (requires JWT, owner only)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response indicates success\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('success', true);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (unauthenticated)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"POST\",\n  \"targetId\": 1,\n  \"type\": \"HEART\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Negative case: create interaction without JWT should be 401."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 401\", function () {",
+                                    "    pm.response.to.have.status(401);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (invalid type)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"POST\",\n  \"targetId\": 1,\n  \"type\": \"LIKE\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Negative case: invalid interaction type enum should be 400."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 400\", function () {",
+                                    "    pm.response.to.have.status(400);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Delete Interaction (unauthenticated)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/interactions/{{interaction_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions", "{{interaction_id}}"]
+                        },
+                        "description": "Negative case: delete interaction without JWT should be 401."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 401\", function () {",
+                                    "    pm.response.to.have.status(401);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "General",
             "item": [
                 {
@@ -561,6 +1084,12 @@
             "description": "Paste a valid JWT access token"
         },
         {
+            "key": "jwt_token_2",
+            "value": "",
+            "type": "string",
+            "description": "Optional: JWT for a second user to validate forbidden (403) cases"
+        },
+        {
             "key": "post_id",
             "value": "",
             "type": "string",
@@ -571,6 +1100,12 @@
             "value": "",
             "type": "string",
             "description": "Comment id used by Update/Delete Comment (auto-set by Post Comments or Create Comment)"
+        },
+        {
+            "key": "interaction_id",
+            "value": "",
+            "type": "string",
+            "description": "Interaction id used by Update/Delete Interaction (auto-set by Create Interaction (post HEART))"
         }
     ]
 }
