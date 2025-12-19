@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -49,5 +49,19 @@ export class PostsController {
         }
 
         return this.postsService.update(id, Number(userId), dto);
+    }
+
+    @Delete(':id')
+    async remove(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: Request & { user?: JwtPayload },
+    ) {
+        const userId = req.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedException('User not authenticated');
+        }
+
+        await this.postsService.delete(id, Number(userId));
+        return { success: true };
     }
 }

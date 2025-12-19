@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Post } from './entities/post.entity';
@@ -18,6 +18,7 @@ export class PostsService {
 
     async findPaginated(params: PaginationParams): Promise<PaginatedResult<Post>> {
         return paginate(this.postRepo, params, {
+            where: { isDeleted: false },
             relations: ['author', 'snippet'],
             order: { createdAt: 'DESC' },
         });
@@ -25,7 +26,7 @@ export class PostsService {
 
     async findOne(id: number): Promise<Post> {
         const post = await this.postRepo.findOne({
-            where: { id },
+            where: { id, isDeleted: false },
             relations: ['author', 'snippet'],
         });
 
@@ -61,13 +62,13 @@ export class PostsService {
     }
 
     async update(id: number, requesterId: number, dto: UpdatePostDto): Promise<Post> {
-        const post = await this.postRepo.findOne({ where: { id }, relations: ['author', 'snippet'] });
+        const post = await this.postRepo.findOne({ where: { id, isDeleted: false }, relations: ['author', 'snippet'] });
         if (!post) {
             throw new NotFoundException('Post not found');
         }
 
         if (post.author?.id !== requesterId) {
-            throw new UnauthorizedException('You cannot edit this post');
+            throw new ForbiddenException('You are not the owner');
         }
 
         if (dto.title !== undefined) post.title = dto.title;
@@ -80,5 +81,22 @@ export class PostsService {
 
         await this.snippetRepo.save(post.snippet);
         return this.postRepo.save(post);
+    }
+
+    async delete(id: number, requesterId: number): Promise<void> {
+        const post = await this.postRepo.findOne({ where: { id, isDeleted: false }, relations: ['author', 'snippet'] });
+        if (!post) {
+            throw new NotFoundException('Post not found');
+        }
+
+        if (post.author?.id !== requesterId) {
+            throw new ForbiddenException('You are not the owner');
+        }
+
+        await this.postRepo.update({ id }, { isDeleted: true });
+
+        if (post.snippet?.id) {
+            await this.snippetRepo.update({ id: post.snippet.id }, { isDeleted: true });
+        }
     }
 }
