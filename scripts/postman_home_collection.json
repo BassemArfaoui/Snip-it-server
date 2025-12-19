@@ -248,6 +248,208 @@
             "response": []
         },
         {
+            "name": "Post Comments (paginated)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:3000/comments/posts/{{post_id}}?page=1&limit=10",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["comments", "posts", "{{post_id}}"],
+                    "query": [
+                        { "key": "page", "value": "1" },
+                        { "key": "limit", "value": "10" }
+                    ]
+                },
+                "description": "Lists comments for a post (public, paginated)."
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"response has data array and meta\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(json).to.have.property('data');",
+                            "    pm.expect(json.data).to.be.an('array');",
+                            "    pm.expect(json).to.have.property('meta');",
+                            "});",
+                            "pm.test(\"comment items include expected fields when present\", function () {",
+                            "    const json = pm.response.json();",
+                            "    if (!json.data.length) {",
+                            "        return;",
+                            "    }",
+                            "    const c = json.data[0];",
+                            "    pm.expect(c).to.have.property('id');",
+                            "    pm.collectionVariables.set('comment_id', String(c.id));",
+                            "    pm.expect(c).to.have.property('content');",
+                            "    pm.expect(c).to.have.property('user');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "response": []
+        },
+        {
+            "name": "Create Comment (post)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"content\": \"Nice post! (created from home collection)\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:3000/comments/posts/{{post_id}}",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["comments", "posts", "{{post_id}}"]
+                },
+                "description": "Creates a comment on a post (requires JWT). Stores created id in collection variable comment_id."
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 201 or 200\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                            "});",
+                            "pm.test(\"response includes created comment id\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(json).to.have.property('id');",
+                            "    pm.expect(json).to.have.property('content');",
+                            "    pm.collectionVariables.set('comment_id', String(json.id));",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "response": []
+        },
+        {
+            "name": "Update Comment",
+            "request": {
+                "method": "PATCH",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"content\": \"Nice post! (updated)\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:3000/comments/{{comment_id}}",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["comments", "{{comment_id}}"]
+                },
+                "description": "Updates a comment (requires JWT, owner only)."
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"updated content is reflected\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('comment_id')));",
+                            "    pm.expect(json.content).to.eql('Nice post! (updated)');",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "response": []
+        },
+        {
+            "name": "Delete Comment",
+            "request": {
+                "method": "DELETE",
+                "header": [],
+                "auth": {
+                    "type": "bearer",
+                    "bearer": [
+                        {
+                            "key": "token",
+                            "value": "{{jwt_token}}",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "http://localhost:3000/comments/{{comment_id}}",
+                    "protocol": "http",
+                    "host": ["localhost"],
+                    "port": "3000",
+                    "path": ["comments", "{{comment_id}}"]
+                },
+                "description": "Deletes a comment (requires JWT, owner only)."
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"status is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"response indicates success\", function () {",
+                            "    const json = pm.response.json();",
+                            "    pm.expect(json).to.have.property('success', true);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "response": []
+        },
+        {
             "name": "Suggested Posts (me)",
             "request": {
                 "method": "GET",
@@ -305,6 +507,12 @@
             "value": "",
             "type": "string",
             "description": "Post id used by Get/Update Post (auto-set by Posts (paginated) or Create Post)"
+        },
+        {
+            "key": "comment_id",
+            "value": "",
+            "type": "string",
+            "description": "Comment id used by Update/Delete Comment (auto-set by Post Comments or Create Comment)"
         }
     ]
 }
