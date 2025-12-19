@@ -282,7 +282,6 @@ export class ProfileService {
 				throw new ConflictException('Email already taken');
 			}
 			user.email = dto.email;
-			user.isEmailVerified = false;
 		}
 
 		if (dto.imageProfile !== undefined) {
@@ -296,7 +295,7 @@ export class ProfileService {
 			username: user.username,
 			email: user.email,
 			imageProfile: user.imageProfile,
-			message: dto.email ? 'Profile updated. Please verify your new email address.' : 'Profile updated successfully',
+			message: 'Profile updated successfully',
 		};
 	}
 
@@ -318,9 +317,10 @@ export class ProfileService {
 		const hashedPassword = await this.hashingService.hash(dto.newPassword);
 		user.password = hashedPassword;
 		user.refreshTokenHash = null;
+		user.isEmailVerified = false;
 
 		await this.usersRepo.save(user);
 
-		return { message: 'Password updated successfully. Please login again with your new password.' };
+		return { message: 'Password updated successfully. Please verify your email address before proceeding.', requiresEmailVerification: true };
 	}
 }
