@@ -6,7 +6,6 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { JwtPayload } from 'jsonwebtoken';
 
 
-
 @Controller('/posts')
 export class PostsController {
     constructor(private readonly postsService: PostsService) {}
@@ -28,9 +27,23 @@ export class PostsController {
         }, Number(userId));
     }
 
+    // public share endpoint
+    @Get('share/:id')
+    async findOneShare(@Param('id', ParseIntPipe) id: number) {
+        return this.postsService.findOneShare(id);
+    }
+
     @Get(':id')
-    async findOne(@Param('id', ParseIntPipe) id: number) {
-        return this.postsService.findOne(id);
+    async findOne(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: Request & { user?: JwtPayload },
+    ) {
+        const userId = req.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedException('User not authenticated');
+        }
+
+        return this.postsService.findOneWithInteractions(id, Number(userId));
     }
 
     @Post()

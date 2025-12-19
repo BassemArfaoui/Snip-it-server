@@ -11,6 +11,7 @@ import { Interaction } from '../interactions/entities/interaction.entity';
 import { InteractionTargetType } from '../../common/enums/interaction-target-type.enum';
 import { ReactionTypeEnum } from '../../common/enums/reaction-emoji.enum';
 
+//! todo : remove the any types in this file
 @Injectable()
 export class PostsService {
     constructor(
@@ -20,6 +21,9 @@ export class PostsService {
         @InjectRepository(Interaction) private readonly interactionRepo: Repository<Interaction>,
     ) {}
 
+
+
+    //note to me in the future : this might look complicated but it's just to get the interactions counts and if the user reacted before efficiently
     async findPaginated(params: PaginationParams, requesterId: number): Promise<PaginatedResult<Post>> {
         const result = await paginate(this.postRepo, params, {
             where: { isDeleted: false },
@@ -99,6 +103,80 @@ export class PostsService {
             throw new NotFoundException('Post not found');
         }
 
+        return post;
+    }
+
+    async findOneWithInteractions(id: number, requesterId: number): Promise<Post> {
+        const post: any = await this.findOne(id);
+
+        const reactionTypes = Object.values(ReactionTypeEnum);
+
+        const rows = await this.interactionRepo
+            .createQueryBuilder('i')
+            .select('i.type', 'type')
+            .addSelect('COUNT(*)', 'count')
+            .where('i.targetType = :targetType', { targetType: InteractionTargetType.POST })
+            .andWhere('i.targetId = :postId', { postId: id })
+            .groupBy('i.type')
+            .getRawMany<{ type: ReactionTypeEnum; count: string }>();
+
+        const counts: Partial<Record<ReactionTypeEnum, number>> = {};
+        for (const row of rows) {
+            counts[row.type] = Number(row.count);
+        }
+
+        const myInteraction = await this.interactionRepo.findOne({
+            where: {
+                userId: requesterId,
+                targetType: InteractionTargetType.POST,
+                targetId: id,
+            },
+        });
+
+        const interactions: any = { total: 0 };
+        for (const type of reactionTypes) {
+            const c = counts[type] ?? 0;
+            interactions[type] = c;
+            interactions.total += c;
+        }
+
+        interactions.didInteract = Boolean(myInteraction);
+        interactions.myType = myInteraction?.type ?? null;
+
+        post.interactions = interactions;
+        return post;
+    }
+
+    async findOneShare(id: number): Promise<Post> {
+        const post: any = await this.findOne(id);
+
+        const reactionTypes = Object.values(ReactionTypeEnum);
+
+        const rows = await this.interactionRepo
+            .createQueryBuilder('i')
+            .select('i.type', 'type')
+            .addSelect('COUNT(*)', 'count')
+            .where('i.targetType = :targetType', { targetType: InteractionTargetType.POST })
+            .andWhere('i.targetId = :postId', { postId: id })
+            .groupBy('i.type')
+            .getRawMany<{ type: ReactionTypeEnum; count: string }>();
+
+        const counts: Partial<Record<ReactionTypeEnum, number>> = {};
+        for (const row of rows) {
+            counts[row.type] = Number(row.count);
+        }
+
+        const interactions: any = { total: 0 };
+        for (const type of reactionTypes) {
+            const c = counts[type] ?? 0;
+            interactions[type] = c;
+            interactions.total += c;
+        }
+
+        interactions.didInteract = false;
+        interactions.myType = null;
+
+        post.interactions = interactions;
         return post;
     }
 
