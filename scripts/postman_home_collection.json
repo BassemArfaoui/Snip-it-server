@@ -158,12 +158,55 @@
                                     "pm.test(\"status is 200\", function () {",
                                     "    pm.response.to.have.status(200);",
                                     "});",
-                                    "pm.test(\"response has id/title/author/snippet\", function () {",
+                                    "pm.test(\"response has id/title/author/snippet/interactions\", function () {",
                                     "    const json = pm.response.json();",
                                     "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('post_id')));",
                                     "    pm.expect(json).to.have.property('title');",
                                     "    pm.expect(json).to.have.property('author');",
                                     "    pm.expect(json).to.have.property('snippet');",
+                                    "    pm.expect(json).to.have.property('interactions');",
+                                    "    pm.expect(json.interactions).to.have.property('total');",
+                                    "    pm.expect(json.interactions).to.have.property('didInteract');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Get Post (share, public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/posts/share/{{post_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["posts", "share", "{{post_id}}"]
+                        },
+                        "description": "Public share link for a post. Includes interaction counts but does not include current-user state (didInteract=false, myType=null)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response has id/title/author/snippet/interactions\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('post_id')));",
+                                    "    pm.expect(json).to.have.property('title');",
+                                    "    pm.expect(json).to.have.property('author');",
+                                    "    pm.expect(json).to.have.property('snippet');",
+                                    "    pm.expect(json).to.have.property('interactions');",
+                                    "    pm.expect(json.interactions).to.have.property('total');",
+                                    "    pm.expect(json.interactions.didInteract).to.eql(false);",
+                                    "    pm.expect(json.interactions.myType).to.eql(null);",
                                     "});"
                                 ],
                                 "type": "text/javascript"
