@@ -27,9 +27,20 @@ export class ProfileService {
 		private readonly hashingService: HashingService,
 	) {}
 
-	async getProfile(userId: number) {
+	async getProfile(userId: number, currentUserId?: number) {
 		const user = await this.usersRepo.findOne({ where: { id: userId } });
 		if (!user) return null;
+
+		let isFollowing = false;
+		if (currentUserId && currentUserId !== userId) {
+			const subscription = await this.subsRepo.findOne({
+				where: {
+					subscriber: { id: currentUserId },
+					targetUser: { id: userId }
+				}
+			});
+			isFollowing = !!subscription;
+		}
 
 		const [followers, following, postsCount, issuesCount] = await Promise.all([
 			this.subsRepo.count({ where: { targetUser: { id: userId } } }),
@@ -49,6 +60,7 @@ export class ProfileService {
 			posts: postsCount,
 			issues: issuesCount,
 			score: user.contributorScore ?? 0,
+			isFollowing,
 		};
 	}
 

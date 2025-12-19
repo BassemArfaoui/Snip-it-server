@@ -11,9 +11,13 @@ export class ProfileController {
 	constructor(private readonly profileService: ProfileService) {}
 
 	@Get(':id')
-	async getProfile(@Param('id') id: string) {
+	async getProfile(
+		@Param('id') id: string,
+		@CurrentUser() currentUser?: User
+	) {
 		const userId = Number(id);
-		return this.profileService.getProfile(userId);
+		const currentUserId = currentUser?.id;
+		return this.profileService.getProfile(userId, currentUserId);
 	}
 
 	@Get(':id/saved_posts')
