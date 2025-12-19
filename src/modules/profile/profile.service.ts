@@ -296,6 +296,7 @@ export class ProfileService {
 			email: user.email,
 			imageProfile: user.imageProfile,
 			message: 'Profile updated successfully',
+			usernameChanged: !!dto.username,
 		};
 	}
 
