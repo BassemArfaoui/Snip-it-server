@@ -1,19 +1,86 @@
-import { Controller, Get, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, Req, UnauthorizedException } from '@nestjs/common';
+import type { Request } from 'express';
+import { PostsService } from './posts.service';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
+import { JwtPayload } from 'jsonwebtoken';
+
 
 @Controller('/posts')
 export class PostsController {
-    @Get()
-    findAll(@Req() req: any) {
-        const user = req['user'];
+    constructor(private readonly postsService: PostsService) {}
 
-        return {
-            message: 'This is a protected route',
-            user,
-            posts: [
-                { id: 1, title: 'First Post', content: 'This is the first post content' },
-                { id: 2, title: 'Second Post', content: 'This is the second post content' },
-                { id: 3, title: 'Third Post', content: 'This is the third post content' },
-            ],
-        };
+    @Get()
+    async findAll(
+        @Req() req: Request & { user?: JwtPayload },
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        const userId = req.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedException('User not authenticated');
+        }
+
+        return this.postsService.findPaginated({
+            page: page ? Number(page) : undefined,
+            limit: limit ? Number(limit) : undefined,
+        }, Number(userId));
+    }
+
+    // public share endpoint
+    @Get('share/:id')
+    async findOneShare(@Param('id', ParseIntPipe) id: number) {
+        return this.postsService.findOneShare(id);
+    }
+
+    @Get(':id')
+    async findOne(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: Request & { user?: JwtPayload },
+    ) {
+        const userId = req.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedException('User not authenticated');
+        }
+
+        return this.postsService.findOneWithInteractions(id, Number(userId));
+    }
+
+    @Post()
+    async create(@Req() req: Request & { user?: JwtPayload}, @Body() dto: CreatePostDto) {
+        const userId = req.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedException('User not authenticated');
+        }
+
+        return this.postsService.create(Number(userId), dto);
+    }
+
+    @Patch(':id')
+    async update(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: Request & { user?: JwtPayload},
+        @Body() dto: UpdatePostDto,
+    ) {
+        const userId = req.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedException('User not authenticated');
+        }
+
+        return this.postsService.update(id, Number(userId), dto);
+    }
+
+    @Delete(':id')
+    async remove(
+        @Param('id', ParseIntPipe) id: number,
+        @Req() req: Request & { user?: JwtPayload },
+    ) {
+        const userId = req.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedException('User not authenticated');
+        }
+
+        await this.postsService.delete(id, Number(userId));
+        return { success: true };
     }
 }

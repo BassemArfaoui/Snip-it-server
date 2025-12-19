@@ -19,6 +19,7 @@ import { InteractionsModule } from './modules/interactions/interactions.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DocsModule } from './docs/docs.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { SuggestedPostsModule } from './modules/suggested-posts/suggested-posts.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -49,6 +50,7 @@ import { ProfileModule } from './modules/profile/profile.module';
     InteractionsModule,
     ProfileModule,
     DocsModule,
+    SuggestedPostsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -63,6 +65,8 @@ export class AppModule implements NestModule {
       .apply(AuthMiddleware)
       .exclude(
         { path: '/', method: RequestMethod.GET },
+        { path: 'posts/share/*path', method: RequestMethod.GET },
+        { path: 'comments/posts/*path', method: RequestMethod.GET },
         { path: 'auth/*path', method: RequestMethod.ALL },
         { path: 'docs/api', method: RequestMethod.ALL },
         // message lel team : add any other public routes here

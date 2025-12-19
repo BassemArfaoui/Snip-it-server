@@ -14,6 +14,7 @@ import { Subscription } from '../../src/modules/subscriptions/entities/subscript
 import { Interaction } from '../../src/modules/interactions/entities/interaction.entity';
 import { CollectionItemEnum } from '../../src/common/enums/collection-item.enum';
 import * as bcrypt from 'bcrypt';
+import { SuggestedPost } from '../../src/modules/suggested-posts/entities/suggested-post.entity';
 
 @Injectable()
 export class SeedService {
@@ -28,6 +29,7 @@ export class SeedService {
         @InjectRepository(CollectionItem) private collectionItemRepository: Repository<CollectionItem>,
         @InjectRepository(Subscription) private subscriptionRepository: Repository<Subscription>,
         @InjectRepository(Interaction) private interactionRepository: Repository<Interaction>,
+        @InjectRepository(SuggestedPost) private suggestedPostRepository: Repository<SuggestedPost>,
     ) { }
 
     async seed() {
@@ -151,5 +153,38 @@ export class SeedService {
         await this.collectionItemRepository.save(savedItem1);
 
         console.log('Seeding completed!');
+    }
+
+    async seedSuggestedPosts() {
+        console.log('Seeding suggested posts...');
+
+        const users = await this.userRepository.find({ take: 5 });
+        const posts = await this.postRepository.find({ take: 10 });
+
+        if (!users.length || !posts.length) {
+            console.log('No users or posts available; skipping suggested posts seed.');
+            return;
+        }
+
+        const suggestions: SuggestedPost[] = [];
+
+        users.forEach((user, idx) => {
+            // Suggest two posts per user for demo purposes
+            const first = posts[idx % posts.length];
+            const second = posts[(idx + 1) % posts.length];
+
+            [first, second].forEach((post, order) => {
+                const suggestion = this.suggestedPostRepository.create({
+                    user,
+                    post,
+                    score: 0.8 - order * 0.1,
+                    reason: 'seeded-demo',
+                });
+                suggestions.push(suggestion);
+            });
+        });
+
+        await this.suggestedPostRepository.save(suggestions);
+        console.log(`Seeded ${suggestions.length} suggested posts.`);
     }
 }

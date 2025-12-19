@@ -1,0 +1,1177 @@
+{
+    "info": {
+        "_postman_id": "c5c4f6f8-1234-4dcb-9b77-0b11a1c2d3e4",
+        "name": "Home Collection",
+        "description": "Home page calls: whoami and suggested posts",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Posts",
+            "item": [
+                {
+                    "name": "Posts (paginated)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/posts",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["posts"]
+                        },
+                        "description": "Returns paginated posts for the home feed (requires JWT). Includes interaction counts + whether the current user interacted."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response has data array and meta\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('data');",
+                                    "    pm.expect(json.data).to.be.an('array');",
+                                    "    pm.expect(json).to.have.property('meta');",
+                                    "    pm.expect(json.meta).to.have.property('page');",
+                                    "    pm.expect(json.meta).to.have.property('limit');",
+                                    "});",
+                                    "pm.test(\"post items include expected fields when present\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    if (!json.data.length) {",
+                                    "        return;",
+                                    "    }",
+                                    "    const post = json.data[0];",
+                                    "    pm.expect(post).to.have.property('id');",
+                                    "    pm.collectionVariables.set('post_id', String(post.id));",
+                                    "    pm.expect(post).to.have.property('title');",
+                                    "    pm.expect(post).to.have.property('description');",
+                                    "    pm.expect(post).to.have.property('author');",
+                                    "    pm.expect(post).to.have.property('snippet');",
+                                    "    pm.expect(post).to.have.property('interactions');",
+                                    "    pm.expect(post.interactions).to.have.property('total');",
+                                    "    pm.expect(post.interactions).to.have.property('didInteract');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Post",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Home feed test post\",\n  \"description\": \"Created from postman_home_collection\",\n  \"snippetContent\": \"console.log('hello');\",\n  \"snippetLanguage\": \"javascript\",\n  \"snippetTitle\": \"hello\",\n  \"githubLink\": \"https://github.com/example/repo\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/posts",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["posts"]
+                        },
+                        "description": "Creates a post (requires JWT). Stores created id in collection variable post_id."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response includes created post id\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.collectionVariables.set('post_id', String(json.id));",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Get Post (by id)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/posts/{{post_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["posts", "{{post_id}}"]
+                        },
+                        "description": "Gets a single post by id (requires JWT). Requires post_id (set by Create Post or Posts (paginated))."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response has id/title/author/snippet/interactions\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('post_id')));",
+                                    "    pm.expect(json).to.have.property('title');",
+                                    "    pm.expect(json).to.have.property('author');",
+                                    "    pm.expect(json).to.have.property('snippet');",
+                                    "    pm.expect(json).to.have.property('interactions');",
+                                    "    pm.expect(json.interactions).to.have.property('total');",
+                                    "    pm.expect(json.interactions).to.have.property('didInteract');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Get Post (share, public)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/posts/share/{{post_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["posts", "share", "{{post_id}}"]
+                        },
+                        "description": "Public share link for a post. Includes interaction counts but does not include current-user state (didInteract=false, myType=null)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response has id/title/author/snippet/interactions\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('post_id')));",
+                                    "    pm.expect(json).to.have.property('title');",
+                                    "    pm.expect(json).to.have.property('author');",
+                                    "    pm.expect(json).to.have.property('snippet');",
+                                    "    pm.expect(json).to.have.property('interactions');",
+                                    "    pm.expect(json.interactions).to.have.property('total');",
+                                    "    pm.expect(json.interactions.didInteract).to.eql(false);",
+                                    "    pm.expect(json.interactions.myType).to.eql(null);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Update Post",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Home feed test post (updated)\",\n  \"snippetContent\": \"console.log('updated');\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/posts/{{post_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["posts", "{{post_id}}"]
+                        },
+                        "description": "Updates a post (requires JWT for the author)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"updated fields are reflected\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('post_id')));",
+                                    "    pm.expect(json.title).to.eql('Home feed test post (updated)');",
+                                    "    pm.expect(json).to.have.property('snippet');",
+                                    "    if (json.snippet && json.snippet.content !== undefined) {",
+                                    "        pm.expect(json.snippet.content).to.eql(\"console.log('updated');\");",
+                                    "    }",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Delete Post",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/posts/{{post_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["posts", "{{post_id}}"]
+                        },
+                        "description": "Deletes a post (requires JWT, owner only)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response indicates success\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('success', true);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Comments",
+            "item": [
+                {
+                    "name": "Post Comments (paginated)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/comments/posts/{{post_id}}?page=1&limit=10",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["comments", "posts", "{{post_id}}"],
+                            "query": [
+                                { "key": "page", "value": "1" },
+                                { "key": "limit", "value": "10" }
+                            ]
+                        },
+                        "description": "Lists comments for a post (public, paginated)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response has data array and meta\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('data');",
+                                    "    pm.expect(json.data).to.be.an('array');",
+                                    "    pm.expect(json).to.have.property('meta');",
+                                    "});",
+                                    "pm.test(\"comment items include expected fields when present\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    if (!json.data.length) {",
+                                    "        return;",
+                                    "    }",
+                                    "    const c = json.data[0];",
+                                    "    pm.expect(c).to.have.property('id');",
+                                    "    pm.collectionVariables.set('comment_id', String(c.id));",
+                                    "    pm.expect(c).to.have.property('content');",
+                                    "    pm.expect(c).to.have.property('user');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Comment (post)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"content\": \"Nice post! (created from home collection)\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/comments/posts/{{post_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["comments", "posts", "{{post_id}}"]
+                        },
+                        "description": "Creates a comment on a post (requires JWT). Stores created id in collection variable comment_id."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response includes created comment id\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.expect(json).to.have.property('content');",
+                                    "    pm.collectionVariables.set('comment_id', String(json.id));",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Update Comment",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"content\": \"Nice post! (updated)\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/comments/{{comment_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["comments", "{{comment_id}}"]
+                        },
+                        "description": "Updates a comment (requires JWT, owner only)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"updated content is reflected\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('comment_id')));",
+                                    "    pm.expect(json.content).to.eql('Nice post! (updated)');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Delete Comment",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/comments/{{comment_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["comments", "{{comment_id}}"]
+                        },
+                        "description": "Deletes a comment (requires JWT, owner only)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response indicates success\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('success', true);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Interactions",
+            "item": [
+                {
+                    "name": "Create Interaction (post HEART)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"POST\",\n  \"targetId\": {{post_id}},\n  \"type\": \"HEART\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Creates a HEART interaction on a post (requires JWT). Stores created id in collection variable interaction_id."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "const postId = pm.collectionVariables.get('post_id');",
+                                    "if (!postId) {",
+                                    "    pm.collectionVariables.set('post_id', '1');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response includes created interaction id\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.expect(json).to.have.property('type');",
+                                    "    pm.expect(json).to.have.property('targetType');",
+                                    "    pm.expect(json).to.have.property('targetId');",
+                                    "    pm.collectionVariables.set('interaction_id', String(json.id));",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (issue HELPFUL)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"ISSUE\",\n  \"targetId\": 1,\n  \"type\": \"HELPFUL\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Creates a HELPFUL interaction on an issue (requires JWT)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response has expected fields\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.expect(json.type).to.eql('HELPFUL');",
+                                    "    pm.expect(json.targetType).to.eql('ISSUE');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (solution INCORRECT)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"SOLUTION\",\n  \"targetId\": 1,\n  \"type\": \"INCORRECT\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Creates an INCORRECT interaction on a solution (requires JWT)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response has expected fields\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.expect(json.type).to.eql('INCORRECT');",
+                                    "    pm.expect(json.targetType).to.eql('SOLUTION');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (comment FUNNY)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"COMMENT\",\n  \"targetId\": {{comment_id}},\n  \"type\": \"FUNNY\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Creates a FUNNY interaction on a comment (requires JWT)."
+                    },
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "const commentId = pm.collectionVariables.get('comment_id');",
+                                    "if (!commentId) {",
+                                    "    pm.collectionVariables.set('comment_id', '1');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 201 or 200\", function () {",
+                                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                                    "});",
+                                    "pm.test(\"response has expected fields\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('id');",
+                                    "    pm.expect(json.type).to.eql('FUNNY');",
+                                    "    pm.expect(json.targetType).to.eql('COMMENT');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Update Interaction (to FIRE)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"FIRE\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions/{{interaction_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions", "{{interaction_id}}"]
+                        },
+                        "description": "Updates an interaction type (requires JWT, owner only)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"updated type is reflected\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(String(json.id)).to.eql(String(pm.collectionVariables.get('interaction_id')));",
+                                    "    pm.expect(json.type).to.eql('FIRE');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Update Interaction (forbidden - other user)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token_2}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"HEART\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions/{{interaction_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions", "{{interaction_id}}"]
+                        },
+                        "description": "Attempts to update an interaction as a different user. Set jwt_token_2 to a different user's JWT to validate 403."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const token2 = pm.collectionVariables.get('jwt_token_2');",
+                                    "if (!token2) {",
+                                    "    console.log('jwt_token_2 not set; skipping forbidden assertion');",
+                                    "    return;",
+                                    "}",
+                                    "pm.test(\"status is 403\", function () {",
+                                    "    pm.response.to.have.status(403);",
+                                    "});",
+                                    "pm.test(\"error message indicates ownership\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(JSON.stringify(json)).to.include('not the owner');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Delete Interaction",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions/{{interaction_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions", "{{interaction_id}}"]
+                        },
+                        "description": "Deletes an interaction (requires JWT, owner only)."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response indicates success\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('success', true);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (unauthenticated)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"POST\",\n  \"targetId\": 1,\n  \"type\": \"HEART\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Negative case: create interaction without JWT should be 401."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 401\", function () {",
+                                    "    pm.response.to.have.status(401);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Create Interaction (invalid type)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"targetType\": \"POST\",\n  \"targetId\": 1,\n  \"type\": \"LIKE\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/interactions",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions"]
+                        },
+                        "description": "Negative case: invalid interaction type enum should be 400."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 400\", function () {",
+                                    "    pm.response.to.have.status(400);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Delete Interaction (unauthenticated)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/interactions/{{interaction_id}}",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["interactions", "{{interaction_id}}"]
+                        },
+                        "description": "Negative case: delete interaction without JWT should be 401."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 401\", function () {",
+                                    "    pm.response.to.have.status(401);",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "General",
+            "item": [
+                {
+                    "name": "Who Am I",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/whoami",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["whoami"]
+                        },
+                        "description": "Returns the authenticated user's id via AuthMiddleware."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"body has userId\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('userId');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
+                    "name": "Suggested Posts (me)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/suggested-posts",
+                            "protocol": "http",
+                            "host": ["localhost"],
+                            "port": "3000",
+                            "path": ["suggested-posts", "me"]
+                        },
+                        "description": "Returns suggested posts for the current user."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"status is 200\", function () {",
+                                    "    pm.response.to.have.status(200);",
+                                    "});",
+                                    "pm.test(\"response has data array and meta\", function () {",
+                                    "    const json = pm.response.json();",
+                                    "    pm.expect(json).to.have.property('data');",
+                                    "    pm.expect(json.data).to.be.an('array');",
+                                    "    pm.expect(json).to.have.property('meta');",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "jwt_token",
+            "value": "",
+            "type": "string",
+            "description": "Paste a valid JWT access token"
+        },
+        {
+            "key": "jwt_token_2",
+            "value": "",
+            "type": "string",
+            "description": "Optional: JWT for a second user to validate forbidden (403) cases"
+        },
+        {
+            "key": "post_id",
+            "value": "",
+            "type": "string",
+            "description": "Post id used by Get/Update Post (auto-set by Posts (paginated) or Create Post)"
+        },
+        {
+            "key": "comment_id",
+            "value": "",
+            "type": "string",
+            "description": "Comment id used by Update/Delete Comment (auto-set by Post Comments or Create Comment)"
+        },
+        {
+            "key": "interaction_id",
+            "value": "",
+            "type": "string",
+            "description": "Interaction id used by Update/Delete Interaction (auto-set by Create Interaction (post HEART))"
+        }
+    ]
+}

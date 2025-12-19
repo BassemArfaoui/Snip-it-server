@@ -8,6 +8,7 @@ import { Comment } from '../../comments/entities/comment.entity';
 import { Collection } from '../../collections/entities/collection.entity';
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
 import { Interaction } from '../../interactions/entities/interaction.entity';
+import { SuggestedPost } from '../../suggested-posts/entities/suggested-post.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -83,4 +84,7 @@ export class User extends BaseEntity {
 
     @OneToMany(() => Interaction, i => i.user)
     interactions: Interaction[];
+
+    @OneToMany(() => SuggestedPost, sp => sp.user)
+    suggestedPosts: SuggestedPost[];
 }
