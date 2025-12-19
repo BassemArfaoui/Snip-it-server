@@ -5,9 +5,10 @@ import { SuggestedPostsService } from './suggested-posts.service';
 import { User } from '../users/entities/user.entity';
 import { Post } from '../posts/entities/post.entity';
 import { SuggestedPostsController } from './suggested-posts.controller';
+import { Interaction } from '../interactions/entities/interaction.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([SuggestedPost, User, Post])],
+    imports: [TypeOrmModule.forFeature([SuggestedPost, User, Post, Interaction])],
     providers: [SuggestedPostsService],
     controllers: [SuggestedPostsController],
     exports: [SuggestedPostsService],
