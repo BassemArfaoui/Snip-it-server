@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { Interaction } from './entities/interaction.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
@@ -19,14 +19,55 @@ export class InteractionsService {
       throw new UnauthorizedException('User not found');
     }
 
+    const existing = await this.interactionRepo.findOne({
+      where: {
+        userId: requesterId,
+        targetType: dto.targetType,
+        targetId: dto.targetId,
+      },
+    });
+
+    if (existing) {
+      existing.type = dto.type;
+      return this.interactionRepo.save(existing);
+    }
+
     const interaction = this.interactionRepo.create({
+      userId: requesterId,
       user,
       targetType: dto.targetType,
       targetId: dto.targetId,
       type: dto.type,
     });
 
-    return this.interactionRepo.save(interaction);
+    try {
+      return await this.interactionRepo.save(interaction);
+    } catch (error) {
+      // If two requests race to create the same (userId, targetType, targetId),
+      // rely on the unique constraint and convert the loser into an update.
+      const driverCode =
+        error instanceof QueryFailedError
+          ? (error as any).driverError?.code ?? (error as any).code
+          : undefined;
+
+      // Postgres unique violation
+      if (driverCode === '23505') {
+        const existingAfterConflict = await this.interactionRepo.findOne({
+          where: {
+            userId: requesterId,
+            targetType: dto.targetType,
+            targetId: dto.targetId,
+          },
+        });
+
+        if (existingAfterConflict) {
+          existingAfterConflict.type = dto.type;
+          return this.interactionRepo.save(existingAfterConflict);
+        }
+      }
+
+      throw error;
+    }
   }
 
   async update(id: number, requesterId: number, dto: UpdateInteractionDto): Promise<Interaction> {
