@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { User } from '../users/entities/user.entity';
@@ -28,62 +28,84 @@ export class ProfileService {
 	) {}
 
 	async getProfile(userId: number, currentUserId?: number) {
-		const user = await this.usersRepo.findOne({ where: { id: userId } });
-		if (!user) return null;
+		try {
+			const user = await this.usersRepo.findOne({ where: { id: userId } });
+			if (!user) {
+				throw new NotFoundException('User not found');
+			}
 
-		let isFollowing = false;
-		if (currentUserId && currentUserId !== userId) {
-			const subscription = await this.subsRepo.findOne({
-				where: {
-					subscriber: { id: currentUserId },
-					targetUser: { id: userId }
+			let isFollowing = false;
+			if (currentUserId && currentUserId !== userId) {
+				try {
+					const subscription = await this.subsRepo.findOne({
+						where: {
+							subscriber: { id: currentUserId },
+							targetUser: { id: userId }
+						}
+					});
+					isFollowing = !!subscription;
+				} catch (error) {
+					// If subscription check fails, default to false
+					isFollowing = false;
 				}
-			});
-			isFollowing = !!subscription;
+			}
+
+			const [followers, following, postsCount, issuesCount] = await Promise.all([
+				this.subsRepo.count({ where: { targetUser: { id: userId } } }).catch(() => 0),
+				this.subsRepo.count({ where: { subscriber: { id: userId } } }).catch(() => 0),
+				this.postsRepo.count({ where: { author: { id: userId } } }).catch(() => 0),
+				this.issuesRepo.count({ where: { user: { id: userId } } }).catch(() => 0),
+			]);
+
+			return {
+				id: user.id,
+				name: user.fullName,
+				username: user.username,
+				email: user.email,
+				imageProfile: user.imageProfile,
+				followers,
+				followedBy: following,
+				posts: postsCount,
+				issues: issuesCount,
+				score: user.contributorScore ?? 0,
+				isFollowing,
+			};
+		} catch (error) {
+			if (error instanceof NotFoundException) {
+				throw error;
+			}
+			throw new BadRequestException('Failed to retrieve profile data');
 		}
-
-		const [followers, following, postsCount, issuesCount] = await Promise.all([
-			this.subsRepo.count({ where: { targetUser: { id: userId } } }),
-			this.subsRepo.count({ where: { subscriber: { id: userId } } }),
-			this.postsRepo.count({ where: { author: { id: userId } } }),
-			this.issuesRepo.count({ where: { user: { id: userId } } }),
-		]);
-
-		return {
-			id: user.id,
-			name: user.fullName,
-			username: user.username,
-			email: user.email,
-			imageProfile: user.imageProfile,
-			followers,
-			followedBy: following,
-			posts: postsCount,
-			issues: issuesCount,
-			score: user.contributorScore ?? 0,
-			isFollowing,
-		};
 	}
 
 	async getSavedPosts(userId: number, currentUserId: number) {
-		if (userId !== currentUserId) return [];
+		try {
+			if (userId !== currentUserId) return [];
 
-		const collections = await this.collectionsRepo.find({
-			where: { user: { id: userId } },
-			relations: ['items'],
-		});
+			const collections = await this.collectionsRepo.find({
+				where: { user: { id: userId } },
+				relations: ['items'],
+			});
 
-		const postIds = collections
-			.flatMap(c => c.items || [])
-			.filter(i => i.targetType === CollectionItemEnum.POST)
-			.map(i => i.targetId);
+			if (!collections || collections.length === 0) return [];
 
-		if (postIds.length === 0) return [];
+			const postIds = collections
+				.flatMap(c => c.items || [])
+				.filter(i => i?.targetType === CollectionItemEnum.POST)
+				.map(i => i.targetId)
+				.filter(id => id !== null && id !== undefined);
 
-		const posts = await this.postsRepo.find({
-			where: { id: In(postIds) },
-			relations: ['author', 'snippet'],
-		});
-		return posts;
+			if (postIds.length === 0) return [];
+
+			const posts = await this.postsRepo.find({
+				where: { id: In(postIds) },
+				relations: ['author', 'snippet'],
+			});
+			return posts || [];
+		} catch (error) {
+			// Return empty array on error to avoid breaking the request
+			return [];
+		}
 	}
 
 	async getBadges(userId: number) {
@@ -92,14 +114,46 @@ export class ProfileService {
 	}
 
 	async getUserPosts(userId: number) {
-		return this.postsRepo.find({ where: { author: { id: userId } }, relations: ['author', 'snippet'] });
+		try {
+			const user = await this.usersRepo.findOne({ where: { id: userId } });
+			if (!user) {
+				throw new NotFoundException('User not found');
+			}
+			const posts = await this.postsRepo.find({ 
+				where: { author: { id: userId } }, 
+				relations: ['author', 'snippet'] 
+			});
+			return posts || [];
+		} catch (error) {
+			if (error instanceof NotFoundException) {
+				throw error;
+			}
+			throw new BadRequestException('Failed to retrieve user posts');
+		}
 	}
 
 	async getUserIssues(userId: number) {
-		return this.issuesRepo.find({ where: { user: { id: userId } } });
+		try {
+			const user = await this.usersRepo.findOne({ where: { id: userId } });
+			if (!user) {
+				throw new NotFoundException('User not found');
+			}
+			const issues = await this.issuesRepo.find({ where: { user: { id: userId } } });
+			return issues || [];
+		} catch (error) {
+			if (error instanceof NotFoundException) {
+				throw error;
+			}
+			throw new BadRequestException('Failed to retrieve user issues');
+		}
 	}
 
 	async getContributionGraph(userId: number) {
+		const user = await this.usersRepo.findOne({ where: { id: userId } });
+		if (!user) {
+			throw new NotFoundException('User not found');
+		}
+		
 		const oneYearAgo = new Date();
 		oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
@@ -182,6 +236,11 @@ export class ProfileService {
 	}
 
 	async getStreak(userId: number) {
+		const user = await this.usersRepo.findOne({ where: { id: userId } });
+		if (!user) {
+			throw new NotFoundException('User not found');
+		}
+		
 		// Get contribution graph data (reuses existing logic)
 		const contributionData = await this.getContributionGraph(userId);
 		
@@ -264,6 +323,11 @@ export class ProfileService {
 
 	// Simple score: 3*posts + 2*issues (no followers)
 	async calculateAndPersistScore(userId: number) {
+		const user = await this.usersRepo.findOne({ where: { id: userId } });
+		if (!user) {
+			throw new NotFoundException('User not found');
+		}
+		
 		const [postsCount, issuesCount] = await Promise.all([
 			this.postsRepo.count({ where: { author: { id: userId } } }),
 			this.issuesRepo.count({ where: { user: { id: userId } } }),
