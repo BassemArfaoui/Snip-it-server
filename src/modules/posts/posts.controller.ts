@@ -13,13 +13,19 @@ export class PostsController {
 
     @Get()
     async findAll(
+        @Req() req: Request & { user?: JwtPayload },
         @Query('page') page?: string,
         @Query('limit') limit?: string,
     ) {
+        const userId = req.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedException('User not authenticated');
+        }
+
         return this.postsService.findPaginated({
             page: page ? Number(page) : undefined,
             limit: limit ? Number(limit) : undefined,
-        });
+        }, Number(userId));
     }
 
     @Get(':id')

@@ -1,12 +1,15 @@
 import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Post } from './entities/post.entity';
 import { Snippet } from '../snippet/entities/snippet.entity';
 import { User } from '../users/entities/user.entity';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PaginatedResult, PaginationParams, paginate } from '../../common/utils/pagination';
+import { Interaction } from '../interactions/entities/interaction.entity';
+import { InteractionTargetType } from '../../common/enums/interaction-target-type.enum';
+import { ReactionTypeEnum } from '../../common/enums/reaction-emoji.enum';
 
 @Injectable()
 export class PostsService {
@@ -14,14 +17,76 @@ export class PostsService {
         @InjectRepository(Post) private readonly postRepo: Repository<Post>,
         @InjectRepository(Snippet) private readonly snippetRepo: Repository<Snippet>,
         @InjectRepository(User) private readonly userRepo: Repository<User>,
+        @InjectRepository(Interaction) private readonly interactionRepo: Repository<Interaction>,
     ) {}
 
-    async findPaginated(params: PaginationParams): Promise<PaginatedResult<Post>> {
-        return paginate(this.postRepo, params, {
+    async findPaginated(params: PaginationParams, requesterId: number): Promise<PaginatedResult<Post>> {
+        const result = await paginate(this.postRepo, params, {
             where: { isDeleted: false },
             relations: ['author', 'snippet'],
             order: { createdAt: 'DESC' },
         });
+
+        const postIds = result.data.map(p => p.id).filter(Boolean);
+        if (!postIds.length) {
+            return result;
+        }
+
+        const reactionTypes = Object.values(ReactionTypeEnum);
+
+        const rows = await this.interactionRepo
+            .createQueryBuilder('i')
+            .select('i.targetId', 'targetId')
+            .addSelect('i.type', 'type')
+            .addSelect('COUNT(*)', 'count')
+            .where('i.targetType = :targetType', { targetType: InteractionTargetType.POST })
+            .andWhere('i.targetId IN (:...postIds)', { postIds })
+            .groupBy('i.targetId')
+            .addGroupBy('i.type')
+            .getRawMany<{ targetId: string; type: ReactionTypeEnum; count: string }>();
+
+        const countsByPostId = new Map<number, Partial<Record<ReactionTypeEnum, number>>>();
+        for (const row of rows) {
+            const targetId = Number(row.targetId);
+            const type = row.type as ReactionTypeEnum;
+            const count = Number(row.count);
+
+            const current = countsByPostId.get(targetId) ?? {};
+            current[type] = count;
+            countsByPostId.set(targetId, current);
+        }
+
+        const myTypeByPostId = new Map<number, ReactionTypeEnum>();
+        const myInteractions = await this.interactionRepo.find({
+            where: {
+                userId: requesterId,
+                targetType: InteractionTargetType.POST,
+                targetId: In(postIds),
+            },
+        });
+
+        for (const interaction of myInteractions) {
+            myTypeByPostId.set(interaction.targetId, interaction.type);
+        }
+
+        for (const post of result.data as any[]) {
+            const counts = countsByPostId.get(post.id) ?? {};
+
+            const interactions: any = { total: 0 };
+            for (const type of reactionTypes) {
+                const c = counts[type] ?? 0;
+                interactions[type] = c;
+                interactions.total += c;
+            }
+
+            const myType = myTypeByPostId.get(post.id) ?? null;
+            interactions.didInteract = Boolean(myType);
+            interactions.myType = myType;
+
+            post.interactions = interactions;
+        }
+
+        return result;
     }
 
     async findOne(id: number): Promise<Post> {
