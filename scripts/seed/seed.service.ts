@@ -12,6 +12,7 @@ import { CommentTypeEnum } from '../../src/common/enums/comment-type.enum';
 import { CollectionItem } from '../../src/modules/collections/entities/item.entity';
 import { Subscription } from '../../src/modules/subscriptions/entities/subscription.entity';
 import { Interaction } from '../../src/modules/interactions/entities/interaction.entity';
+import { PrivateSnippet } from '../../src/modules/private-snippets/entities/private-snippet.entity';
 import { CollectionItemEnum } from '../../src/common/enums/collection-item.enum';
 import * as bcrypt from 'bcrypt';
 import { SuggestedPost } from '../../src/modules/suggested-posts/entities/suggested-post.entity';
@@ -30,6 +31,7 @@ export class SeedService {
         @InjectRepository(Subscription) private subscriptionRepository: Repository<Subscription>,
         @InjectRepository(Interaction) private interactionRepository: Repository<Interaction>,
         @InjectRepository(SuggestedPost) private suggestedPostRepository: Repository<SuggestedPost>,
+        @InjectRepository(PrivateSnippet) private privateSnippetRepository: Repository<PrivateSnippet>,
     ) { }
 
     async seed() {
@@ -85,6 +87,7 @@ export class SeedService {
             description: 'This is a description of my first post.',
             author: user2,
             snippet: snippet1,
+            language: snippet1.language,
         });
         await this.postRepository.save(post1);
 
@@ -100,6 +103,7 @@ export class SeedService {
             description: 'Another post by user2',
             author: user2,
             snippet: snippet2,
+            language: snippet2.language,
         });
         await this.postRepository.save(post2);
 
@@ -149,8 +153,32 @@ export class SeedService {
             targetId: post1.id,
             targetType: CollectionItemEnum.POST,
             isPinned: false,
+            isFavorite: true,
         });
         await this.collectionItemRepository.save(savedItem1);
+
+        // Example of a shareable collection for user2 (read-only link by default)
+        const shared = this.collectionRepository.create({ user: user2, name: 'Shared With Friends', isPublic: false, shareToken: 'share_abc123', allowEdit: false });
+        await this.collectionRepository.save(shared);
+
+        // Create private snippets for user1
+        const privateSnippet1Snippet = this.snippetRepository.create({
+            title: 'React useDebounce Hook',
+            content: 'export const useDebounce = (value, delay) => { const [debouncedValue, setDebouncedValue] = useState(value); useEffect(() => { const handler = setTimeout(() => setDebouncedValue(value), delay); return () => clearTimeout(handler); }, [value, delay]); return debouncedValue; };',
+            language: 'typescript',
+        });
+        await this.snippetRepository.save(privateSnippet1Snippet);
+        const privateSnippet1 = this.privateSnippetRepository.create({ snippet: privateSnippet1Snippet, user: user1 });
+        await this.privateSnippetRepository.save(privateSnippet1);
+
+        const privateSnippet2Snippet = this.snippetRepository.create({
+            title: 'Python Quick Sort',
+            content: 'def quicksort(arr): if len(arr) <= 1: return arr; pivot = arr[len(arr) // 2]; left = [x for x in arr if x < pivot]; middle = [x for x in arr if x == pivot]; right = [x for x in arr if x > pivot]; return quicksort(left) + middle + quicksort(right);',
+            language: 'python',
+        });
+        await this.snippetRepository.save(privateSnippet2Snippet);
+        const privateSnippet2 = this.privateSnippetRepository.create({ snippet: privateSnippet2Snippet, user: user1 });
+        await this.privateSnippetRepository.save(privateSnippet2);
 
         console.log('Seeding completed!');
     }

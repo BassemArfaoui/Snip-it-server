@@ -20,6 +20,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DocsModule } from './docs/docs.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { SuggestedPostsModule } from './modules/suggested-posts/suggested-posts.module';
+import { User } from './modules/users/entities/user.entity';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -36,6 +38,7 @@ import { SuggestedPostsModule } from './modules/suggested-posts/suggested-posts.
       autoLoadEntities: true,
       synchronize: true,
     }),
+    TypeOrmModule.forFeature([User]),
     CommonModule,
     AuthModule,
     SnippetModule,
