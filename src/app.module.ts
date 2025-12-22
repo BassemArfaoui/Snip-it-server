@@ -19,6 +19,8 @@ import { InteractionsModule } from './modules/interactions/interactions.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DocsModule } from './docs/docs.module';
 import { ProfileModule } from './modules/profile/profile.module';
+import { User } from './modules/users/entities/user.entity';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -35,6 +37,7 @@ import { ProfileModule } from './modules/profile/profile.module';
       autoLoadEntities: true,
       synchronize: true,
     }),
+    TypeOrmModule.forFeature([User]),
     CommonModule,
     AuthModule,
     SnippetModule,

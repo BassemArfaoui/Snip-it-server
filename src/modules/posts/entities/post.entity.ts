@@ -22,6 +22,9 @@ export class Post extends BaseEntity {
     @Column({ nullable: true })
     githubLink: string;
 
+    @Column({ nullable: true })
+    language: string;
+
     @Column({ default: 0 })
     viewsCount: number;
 
@@ -33,4 +36,7 @@ export class Post extends BaseEntity {
 
     @Column({ default: false })
     isDeleted: boolean;
+
+    @Column({ default: true })
+    isDraft: boolean;
 }

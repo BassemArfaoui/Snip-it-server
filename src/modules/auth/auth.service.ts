@@ -67,7 +67,8 @@ export class AuthService {
     async login(loginDto: LoginDto): Promise<AuthTokens> {
         const { identifier, password } = loginDto;
 
-        const user = await this.usersService.findOneByEmailOrUsername(identifier);
+        // Need password for login; password column is select: false
+        const user = await this.usersService.findOneByEmailOrUsernameWithPassword(identifier);
 
         if (!user) {
             throw new UnauthorizedException('Invalid credentials');

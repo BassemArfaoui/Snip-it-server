@@ -8,11 +8,12 @@ import { VotingService } from './services/voting.service';
 
 import { VotesController } from './controllers/votes.controller';
 import { Vote } from './entities/vote.entity';
+import { User } from '../modules/users/entities/user.entity';
 
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([Vote]),
+    TypeOrmModule.forFeature([Vote, User]),
   ],
   controllers: [VotesController],
   providers: [

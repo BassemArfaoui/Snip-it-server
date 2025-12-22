@@ -1,5 +1,6 @@
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -8,6 +9,16 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
+
+  // Swagger setup
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Snip-it API')
+    .setDescription('Collections, private snippets, posts, issues, solutions')
+    .setVersion('1.0')
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'JWT')
+    .build();
+  const swaggerDoc = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('swagger', app, swaggerDoc);
 
   // Enable CORS
   app.enableCors({
@@ -37,7 +48,7 @@ async function bootstrap() {
 
   const logger = new Logger('Bootstrap');
   logger.log(`Server running on http://localhost:${port}`);
-  logger.log(`Documentation available at http://localhost:${port}/docs/api`);
+  logger.log(`Documentation available at http://localhost:${port}/swagger`);
 }
 
 bootstrap().catch((err) => {

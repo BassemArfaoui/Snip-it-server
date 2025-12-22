@@ -14,4 +14,7 @@ export class Snippet extends BaseEntity {
 
     @Column({ default: false })
     isDeleted: boolean;
+
+    @Column({ default: false })
+    posted: boolean;
 }
