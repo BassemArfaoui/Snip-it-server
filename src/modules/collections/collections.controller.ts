@@ -26,12 +26,13 @@ export class CollectionsController {
     }
 
     @Get()
-    list(@Req() req: Request, @Query('page') page?: string, @Query('size') size?: string, @Query('q') q?: string) {
+    list(@Req() req: Request, @Query('page') page?: string, @Query('size') size?: string, @Query('q') q?: string, @Query('tags') tags?: string) {
         const user = req['user'] as AuthUser;
         return this.service.getUserCollections(user, {
             page: page ? parseInt(page) : undefined,
             size: size ? parseInt(size) : undefined,
             q,
+            tags: tags ? tags.split(',') : undefined,
         });
     }
 
@@ -96,5 +97,24 @@ export class CollectionsController {
     @Get('share/token/:token')
     getByToken(@Param('token') token: string) {
         return this.service.getCollectionByToken(token);
+    }
+
+    // Tag Assignment Endpoints
+    @Post(':id/tags/:tagId')
+    assignTag(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Param('tagId', ParseIntPipe) tagId: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.assignTagToCollection(user, id, tagId);
+    }
+
+    @Delete(':id/tags/:tagId')
+    removeTag(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Param('tagId', ParseIntPipe) tagId: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.removeTagFromCollection(user, id, tagId);
+    }
+
+    @Get(':id/tags')
+    getTags(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.getCollectionTags(user, id);
     }
 }

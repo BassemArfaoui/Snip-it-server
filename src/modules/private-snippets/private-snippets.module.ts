@@ -7,9 +7,10 @@ import { Snippet } from '../snippet/entities/snippet.entity';
 import { Post } from '../posts/entities/post.entity';
 import { User } from '../users/entities/user.entity';
 import { PrivateSnippetVersion } from './entities/private-snippet-version.entity';
+import { Tag } from '../tags/entities/tag.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([PrivateSnippet, Snippet, Post, User, PrivateSnippetVersion])],
+    imports: [TypeOrmModule.forFeature([PrivateSnippet, Tag, Snippet, Post, User, PrivateSnippetVersion])],
     providers: [PrivateSnippetsService],
     controllers: [PrivateSnippetsController],
 })

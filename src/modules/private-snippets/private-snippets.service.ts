@@ -6,6 +6,7 @@ import { Snippet } from '../snippet/entities/snippet.entity';
 import { Post } from '../posts/entities/post.entity';
 import { User } from '../users/entities/user.entity';
 import { PrivateSnippetVersion } from './entities/private-snippet-version.entity';
+import { Tag } from '../tags/entities/tag.entity';
 
 export interface AuthUser {
     userId: string;
@@ -21,6 +22,7 @@ export class PrivateSnippetsService {
         @InjectRepository(Post) private postRepo: Repository<Post>,
         @InjectRepository(User) private userRepo: Repository<User>,
         @InjectRepository(PrivateSnippetVersion) private versionRepo: Repository<PrivateSnippetVersion>,
+        @InjectRepository(Tag) private tagRepo: Repository<Tag>,
     ) { }
 
     async createPrivateSnippet(authUser: AuthUser, title: string | undefined, content: string, language: string) {
@@ -83,12 +85,13 @@ export class PrivateSnippetsService {
         return { ...ps, versions: undefined, user: undefined }; // trim versions and user in response
     }
 
-    async getUserPrivateSnippets(authUser: AuthUser, opts: { page?: number; size?: number; q?: string; language?: string } = {}) {
+    async getUserPrivateSnippets(authUser: AuthUser, opts: { page?: number; size?: number; q?: string; language?: string; tags?: string[] } = {}) {
         const page = opts.page ?? 1;
         const size = Math.min(opts.size ?? 20, 100);
         
         const qb = this.privateSnippetRepo.createQueryBuilder('ps')
             .leftJoinAndSelect('ps.snippet', 'snippet')
+            .leftJoinAndSelect('ps.tags', 'tags')
             .where('ps.userId = :userId', { userId: authUser.userId })
             .andWhere('snippet.posted = false');
         
@@ -98,6 +101,10 @@ export class PrivateSnippetsService {
         
         if (opts.language) {
             qb.andWhere('snippet.language = :lang', { lang: opts.language });
+        }
+
+        if (opts.tags && opts.tags.length > 0) {
+            qb.andWhere('tags.name IN (:...tags)', { tags: opts.tags });
         }
         
         const [items, total] = await qb.skip((page - 1) * size).take(size).getManyAndCount();
@@ -161,5 +168,62 @@ export class PrivateSnippetsService {
         const version = ps.versions.find(v => v.id === versionId);
         if (!version) throw new NotFoundException('Version not found');
         return this.versionRepo.remove(version);
+    }
+
+    // Tag Assignment Methods
+    async assignTagToSnippet(authUser: AuthUser, snippetId: number, tagId: number) {
+        const snippet = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['user', 'tags'],
+        });
+
+        if (!snippet) throw new NotFoundException('Private snippet not found');
+        if (snippet.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+
+        const tag = await this.tagRepo.findOne({ where: { id: tagId } });
+        if (!tag) throw new NotFoundException('Tag not found');
+        if (tag.user.id !== Number(authUser.userId)) throw new BadRequestException('You can only assign your own tags');
+
+        // Check if tag already assigned
+        if (snippet.tags.some(t => t.id === tagId)) {
+            throw new BadRequestException('Tag already assigned to this snippet');
+        }
+
+        snippet.tags.push(tag);
+        await this.privateSnippetRepo.save(snippet);
+
+        return { message: 'Tag assigned successfully' };
+    }
+
+    async removeTagFromSnippet(authUser: AuthUser, snippetId: number, tagId: number) {
+        const snippet = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['user', 'tags'],
+        });
+
+        if (!snippet) throw new NotFoundException('Private snippet not found');
+        if (snippet.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+
+        const tagIndex = snippet.tags.findIndex(t => t.id === tagId);
+        if (tagIndex === -1) throw new NotFoundException('Tag not assigned to this snippet');
+
+        snippet.tags.splice(tagIndex, 1);
+        await this.privateSnippetRepo.save(snippet);
+
+        return { message: 'Tag removed successfully' };
+    }
+
+    async getSnippetTags(authUser: AuthUser, snippetId: number) {
+        const snippet = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['user', 'tags'],
+        });
+
+        if (!snippet) throw new NotFoundException('Private snippet not found');
+        if (snippet.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+
+        return snippet.tags
+            .map(({ user, ...tag }) => tag)
+            .sort((a, b) => a.order - b.order);
     }
 }

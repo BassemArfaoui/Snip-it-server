@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Collection } from './entities/collection.entity';
 import { CollectionItem } from './entities/item.entity';
+import { Tag } from '../tags/entities/tag.entity';
 import { Post } from '../posts/entities/post.entity';
 import { Issue } from '../issues/entities/issue.entity';
 import { Solution } from '../solutions/entities/solution.entity';
@@ -22,6 +23,7 @@ export class CollectionsService {
     constructor(
         @InjectRepository(Collection) private collectionRepo: Repository<Collection>,
         @InjectRepository(CollectionItem) private itemRepo: Repository<CollectionItem>,
+        @InjectRepository(Tag) private tagRepo: Repository<Tag>,
         @InjectRepository(Post) private postRepo: Repository<Post>,
         @InjectRepository(Issue) private issueRepo: Repository<Issue>,
         @InjectRepository(Solution) private solutionRepo: Repository<Solution>,
@@ -51,15 +53,20 @@ export class CollectionsService {
         return result;
     }
 
-    async getUserCollections(authUser: AuthUser, opts: { page?: number; size?: number; q?: string } = {}) {
+    async getUserCollections(authUser: AuthUser, opts: { page?: number; size?: number; q?: string; tags?: string[] } = {}) {
         const page = opts.page ?? 1;
         const size = Math.min(opts.size ?? 20, 100);
 
         const qb = this.collectionRepo.createQueryBuilder('c')
+            .leftJoinAndSelect('c.tags', 'tags')
             .where('c.userId = :userId', { userId: authUser.userId });
 
         if (opts.q) {
             qb.andWhere('c.name ILIKE :q', { q: `%${opts.q}%` });
+        }
+
+        if (opts.tags && opts.tags.length > 0) {
+            qb.andWhere('tags.name IN (:...tags)', { tags: opts.tags });
         }
 
         const [items, total] = await qb
@@ -290,5 +297,62 @@ export class CollectionsService {
 
         const { user: _, ...result } = collection;
         return result;
+    }
+
+    // Tag Assignment Methods
+    async assignTagToCollection(authUser: AuthUser, collectionId: number, tagId: number) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user', 'tags'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+        if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
+
+        const tag = await this.tagRepo.findOne({ where: { id: tagId } });
+        if (!tag) throw new NotFoundException('Tag not found');
+        if (tag.user.id !== Number(authUser.userId)) throw new BadRequestException('You can only assign your own tags');
+
+        // Check if tag already assigned
+        if (collection.tags.some(t => t.id === tagId)) {
+            throw new BadRequestException('Tag already assigned to this collection');
+        }
+
+        collection.tags.push(tag);
+        await this.collectionRepo.save(collection);
+
+        return { message: 'Tag assigned successfully' };
+    }
+
+    async removeTagFromCollection(authUser: AuthUser, collectionId: number, tagId: number) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user', 'tags'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+        if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
+
+        const tagIndex = collection.tags.findIndex(t => t.id === tagId);
+        if (tagIndex === -1) throw new NotFoundException('Tag not assigned to this collection');
+
+        collection.tags.splice(tagIndex, 1);
+        await this.collectionRepo.save(collection);
+
+        return { message: 'Tag removed successfully' };
+    }
+
+    async getCollectionTags(authUser: AuthUser, collectionId: number) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user', 'tags'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+        if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
+
+        return collection.tags
+            .map(({ user, ...tag }) => tag)
+            .sort((a, b) => a.order - b.order);
     }
 }

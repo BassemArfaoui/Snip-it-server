@@ -9,9 +9,10 @@ import { Issue } from '../issues/entities/issue.entity';
 import { Solution } from '../solutions/entities/solution.entity';
 import { PrivateSnippet } from '../private-snippets/entities/private-snippet.entity';
 import { User } from '../users/entities/user.entity';
+import { Tag } from '../tags/entities/tag.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Collection, CollectionItem, Post, Issue, Solution, PrivateSnippet, User])],
+    imports: [TypeOrmModule.forFeature([Collection, CollectionItem, Tag, Post, Issue, Solution, PrivateSnippet, User])],
     providers: [CollectionsService],
     controllers: [CollectionsController],
 })

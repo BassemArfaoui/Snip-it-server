@@ -25,13 +25,14 @@ export class PrivateSnippetsController {
     }
 
     @Get()
-    list(@Req() req: Request, @Query('page') page?: string, @Query('size') size?: string, @Query('q') q?: string, @Query('language') language?: string) {
+    list(@Req() req: Request, @Query('page') page?: string, @Query('size') size?: string, @Query('q') q?: string, @Query('language') language?: string, @Query('tags') tags?: string) {
         const user = req['user'] as AuthUser;
         return this.service.getUserPrivateSnippets(user, {
             page: page ? parseInt(page) : undefined,
             size: size ? parseInt(size) : undefined,
             q,
             language,
+            tags: tags ? tags.split(',') : undefined,
         });
     }
 
@@ -67,5 +68,24 @@ export class PrivateSnippetsController {
     deleteVersion(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Param('versionId', ParseIntPipe) versionId: number) {
         const user = req['user'] as AuthUser;
         return this.service.deleteVersion(user, id, versionId);
+    }
+
+    // Tag Assignment Endpoints
+    @Post(':id/tags/:tagId')
+    assignTag(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Param('tagId', ParseIntPipe) tagId: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.assignTagToSnippet(user, id, tagId);
+    }
+
+    @Delete(':id/tags/:tagId')
+    removeTag(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Param('tagId', ParseIntPipe) tagId: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.removeTagFromSnippet(user, id, tagId);
+    }
+
+    @Get(':id/tags')
+    getTags(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.getSnippetTags(user, id);
     }
 }
