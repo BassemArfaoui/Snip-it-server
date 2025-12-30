@@ -40,7 +40,9 @@ export class CollectionsService {
             allowEdit,
             shareToken: isPublic ? crypto.randomBytes(16).toString('hex') : undefined,
         });
-        return this.collectionRepo.save(collection);
+        const saved = await this.collectionRepo.save(collection);
+        const { user: _, ...result } = saved;
+        return result;
     }
 
     async getUserCollections(authUser: AuthUser, opts: { page?: number; size?: number; q?: string } = {}) {
@@ -59,7 +61,10 @@ export class CollectionsService {
             .take(size)
             .getManyAndCount();
 
-        return { items, total, page, size };
+        // Remove user data from all items
+        const sanitizedItems = items.map(({ user, ...item }) => item);
+
+        return { items: sanitizedItems, total, page, size };
     }
 
     async getCollectionById(authUser: AuthUser, id: number) {
@@ -71,7 +76,8 @@ export class CollectionsService {
         if (!collection) throw new NotFoundException('Collection not found');
         if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
 
-        return collection;
+        const { user: _, ...result } = collection;
+        return result;
     }
 
     async updateCollection(authUser: AuthUser, id: number, payload: { name?: string; isPublic?: boolean; allowEdit?: boolean }) {
@@ -88,7 +94,9 @@ export class CollectionsService {
         }
         if (payload.allowEdit !== undefined) collection.allowEdit = payload.allowEdit;
 
-        return this.collectionRepo.save(collection);
+        const saved = await this.collectionRepo.save(collection);
+        const { user: _, ...result } = saved;
+        return result;
     }
 
     async deleteCollection(authUser: AuthUser, id: number) {
@@ -96,7 +104,9 @@ export class CollectionsService {
         if (!collection) throw new NotFoundException('Collection not found');
         if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
 
-        return this.collectionRepo.softRemove(collection);
+        const removed = await this.collectionRepo.softRemove(collection);
+        const { user: _, ...result } = removed;
+        return result;
     }
 
     async addItemToCollection(
@@ -264,6 +274,7 @@ export class CollectionsService {
 
         if (!collection) throw new NotFoundException('Collection not found');
 
-        return collection;
+        const { user: _, ...result } = collection;
+        return result;
     }
 }

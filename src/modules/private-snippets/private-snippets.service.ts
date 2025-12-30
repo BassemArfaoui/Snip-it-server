@@ -30,7 +30,9 @@ export class PrivateSnippetsService {
         const snippet = this.snippetRepo.create({ title, content, language });
         await this.snippetRepo.save(snippet);
         const privateSnippet = this.privateSnippetRepo.create({ snippet, user });
-        return this.privateSnippetRepo.save(privateSnippet);
+        const saved = await this.privateSnippetRepo.save(privateSnippet);
+        const { user: _, ...result } = saved;
+        return result;
     }
 
     async updatePrivateSnippet(authUser: AuthUser, id: number, payload: { title?: string; content?: string; language?: string }) {
@@ -53,7 +55,7 @@ export class PrivateSnippetsService {
         if (payload.language !== undefined) ps.snippet.language = payload.language;
 
         await this.snippetRepo.save(ps.snippet);
-        return { ...ps, versions: undefined }; // trim versions in response
+        return { ...ps, versions: undefined, user: undefined }; // trim versions and user in response
     }
 
     async getUserPrivateSnippets(authUser: AuthUser, opts: { page?: number; size?: number; q?: string; language?: string } = {}) {
@@ -74,7 +76,9 @@ export class PrivateSnippetsService {
         }
         
         const [items, total] = await qb.skip((page - 1) * size).take(size).getManyAndCount();
-        return { items, total, page, size };
+        // Remove user data from all items
+        const sanitizedItems = items.map(({ user, ...item }) => item);
+        return { items: sanitizedItems, total, page, size };
     }
 
     async transformToPost(authUser: AuthUser, privateSnippetId: number, payload: { title: string, description: string, publish?: boolean }) {
@@ -101,7 +105,9 @@ export class PrivateSnippetsService {
     async deletePrivateSnippet(authUser: AuthUser, id: number) {
         const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['user'] });
         if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
-        return this.privateSnippetRepo.softRemove(ps);
+        const removed = await this.privateSnippetRepo.softRemove(ps);
+        const { user: _, ...result } = removed;
+        return result;
     }
 
     async getVersions(authUser: AuthUser, id: number, opts: { page?: number; size?: number } = {}) {
