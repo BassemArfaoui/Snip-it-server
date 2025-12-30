@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PrivateSnippet } from './entities/private-snippet.entity';
@@ -27,6 +27,18 @@ export class PrivateSnippetsService {
         const user = await this.userRepo.findOne({ where: { id: Number(authUser.userId) } });
         if (!user) throw new NotFoundException('User not found');
         
+        // Check if snippet with same title already exists for this user (if title is provided)
+        if (title) {
+            const existing = await this.privateSnippetRepo
+                .createQueryBuilder('ps')
+                .leftJoin('ps.snippet', 'snippet')
+                .leftJoin('ps.user', 'user')
+                .where('user.id = :userId', { userId: user.id })
+                .andWhere('snippet.title = :title', { title })
+                .getOne();
+            if (existing) throw new BadRequestException(`Private snippet with title "${title}" already exists`);
+        }
+        
         const snippet = this.snippetRepo.create({ title, content, language });
         await this.snippetRepo.save(snippet);
         const privateSnippet = this.privateSnippetRepo.create({ snippet, user });
@@ -38,6 +50,19 @@ export class PrivateSnippetsService {
     async updatePrivateSnippet(authUser: AuthUser, id: number, payload: { title?: string; content?: string; language?: string }) {
         const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['snippet', 'user', 'versions'] });
         if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+
+        // Check if new title conflicts with existing snippet
+        if (payload.title !== undefined && payload.title !== ps.snippet.title) {
+            const existing = await this.privateSnippetRepo
+                .createQueryBuilder('ps')
+                .leftJoin('ps.snippet', 'snippet')
+                .leftJoin('ps.user', 'user')
+                .where('user.id = :userId', { userId: ps.user.id })
+                .andWhere('snippet.title = :title', { title: payload.title })
+                .andWhere('ps.id != :id', { id })
+                .getOne();
+            if (existing) throw new BadRequestException(`Private snippet with title "${payload.title}" already exists`);
+        }
 
         // Save a version snapshot before updating
         const versionNumber = (ps.versions?.length ?? 0) + 1;
@@ -99,6 +124,12 @@ export class PrivateSnippetsService {
         // mark snippet as posted to hide from the personal list
         ps.snippet.posted = true;
         await this.snippetRepo.save(ps.snippet);
+        
+        // Sanitize author data to remove sensitive information
+        if (saved.author) {
+            const { password, refreshTokenHash, email, ...safeAuthor } = saved.author;
+            return { ...saved, author: safeAuthor };
+        }
         return saved;
     }
 

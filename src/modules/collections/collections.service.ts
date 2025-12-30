@@ -33,6 +33,12 @@ export class CollectionsService {
         const user = await this.userRepo.findOne({ where: { id: Number(authUser.userId) } });
         if (!user) throw new NotFoundException('User not found');
 
+        // Check if collection with same name already exists for this user
+        const existing = await this.collectionRepo.findOne({
+            where: { user: { id: user.id }, name },
+        });
+        if (existing) throw new BadRequestException(`Collection with name "${name}" already exists`);
+
         const collection = this.collectionRepo.create({
             name,
             user,
@@ -84,6 +90,14 @@ export class CollectionsService {
         const collection = await this.collectionRepo.findOne({ where: { id }, relations: ['user'] });
         if (!collection) throw new NotFoundException('Collection not found');
         if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
+
+        // Check if new name conflicts with existing collection
+        if (payload.name !== undefined && payload.name !== collection.name) {
+            const existing = await this.collectionRepo.findOne({
+                where: { user: { id: collection.user.id }, name: payload.name },
+            });
+            if (existing) throw new BadRequestException(`Collection with name "${payload.name}" already exists`);
+        }
 
         if (payload.name !== undefined) collection.name = payload.name;
         if (payload.isPublic !== undefined) {
