@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Collection } from './entities/collection.entity';
 import { CollectionItem } from './entities/item.entity';
+import { CollectionCollaborator } from './entities/collaborator.entity';
 import { Tag } from '../tags/entities/tag.entity';
 import { Post } from '../posts/entities/post.entity';
 import { Issue } from '../issues/entities/issue.entity';
@@ -10,6 +11,7 @@ import { Solution } from '../solutions/entities/solution.entity';
 import { PrivateSnippet } from '../private-snippets/entities/private-snippet.entity';
 import { User } from '../users/entities/user.entity';
 import { CollectionItemEnum } from '../../common/enums/collection-item.enum';
+import { CollectionPermission } from '../../common/enums/collection-permission.enum';
 import * as crypto from 'crypto';
 
 export interface AuthUser {
@@ -23,6 +25,7 @@ export class CollectionsService {
     constructor(
         @InjectRepository(Collection) private collectionRepo: Repository<Collection>,
         @InjectRepository(CollectionItem) private itemRepo: Repository<CollectionItem>,
+        @InjectRepository(CollectionCollaborator) private collaboratorRepo: Repository<CollectionCollaborator>,
         @InjectRepository(Tag) private tagRepo: Repository<Tag>,
         @InjectRepository(Post) private postRepo: Repository<Post>,
         @InjectRepository(Issue) private issueRepo: Repository<Issue>,
@@ -293,10 +296,18 @@ export class CollectionsService {
             relations: ['user', 'items'],
         });
 
-        if (!collection) throw new NotFoundException('Collection not found');
+        if (!collection) throw new NotFoundException('Collection not found or link has been revoked');
+
+        // Check if link has expired
+        if (collection.shareTokenExpiresAt && collection.shareTokenExpiresAt < new Date()) {
+            throw new ForbiddenException('This share link has expired');
+        }
 
         const { user: _, ...result } = collection;
-        return result;
+        return {
+            ...result,
+            linkPermission: collection.shareLinkPermission || CollectionPermission.VIEW,
+        };
     }
 
     // Tag Assignment Methods
@@ -354,5 +365,197 @@ export class CollectionsService {
         return collection.tags
             .map(({ user, ...tag }) => tag)
             .sort((a, b) => a.order - b.order);
+    }
+
+    // Collaboration Methods
+    async generateShareLink(authUser: AuthUser, collectionId: number, permission: CollectionPermission, expiresInDays?: number) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+        if (collection.user.id !== Number(authUser.userId)) throw new ForbiddenException('Only collection owner can generate share links');
+
+        // Generate new share token
+        collection.shareToken = crypto.randomBytes(32).toString('hex');
+        collection.isPublic = true;
+        collection.shareLinkPermission = permission;
+
+        // Set expiration if provided
+        if (expiresInDays) {
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+            collection.shareTokenExpiresAt = expiresAt;
+        } else {
+            collection.shareTokenExpiresAt = undefined;
+        }
+
+        await this.collectionRepo.save(collection);
+
+        return {
+            shareLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/collections/share/${collection.shareToken}`,
+            shareToken: collection.shareToken,
+            permission: collection.shareLinkPermission,
+            expiresAt: collection.shareTokenExpiresAt,
+        };
+    }
+
+    async revokeShareLink(authUser: AuthUser, collectionId: number) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+        if (collection.user.id !== Number(authUser.userId)) throw new ForbiddenException('Only collection owner can revoke share links');
+
+        collection.shareToken = undefined;
+        collection.shareTokenExpiresAt = undefined;
+        collection.shareLinkPermission = undefined;
+        collection.isPublic = false;
+
+        await this.collectionRepo.save(collection);
+
+        return { message: 'Share link revoked successfully' };
+    }
+
+    async addCollaborator(authUser: AuthUser, collectionId: number, userId: number, permission: CollectionPermission) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user', 'collaborators'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+        if (collection.user.id !== Number(authUser.userId)) throw new ForbiddenException('Only collection owner can add collaborators');
+
+        // Check if user exists
+        const user = await this.userRepo.findOne({ where: { id: userId } });
+        if (!user) throw new NotFoundException('User not found');
+
+        // Check if user is already a collaborator
+        const existing = await this.collaboratorRepo.findOne({
+            where: { collection: { id: collectionId }, user: { id: userId } },
+        });
+
+        if (existing) throw new BadRequestException('User is already a collaborator');
+
+        // Cannot add owner as collaborator
+        if (collection.user.id === userId) throw new BadRequestException('Cannot add collection owner as collaborator');
+
+        const collaborator = this.collaboratorRepo.create({
+            collection,
+            user,
+            permission,
+            invitedBy: Number(authUser.userId),
+        });
+
+        await this.collaboratorRepo.save(collaborator);
+
+        return {
+            id: collaborator.id,
+            userId: user.id,
+            username: user.username,
+            permission: collaborator.permission,
+            createdAt: collaborator.createdAt,
+        };
+    }
+
+    async updateCollaboratorPermission(authUser: AuthUser, collectionId: number, collaboratorId: number, permission: CollectionPermission) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+        if (collection.user.id !== Number(authUser.userId)) throw new ForbiddenException('Only collection owner can update permissions');
+
+        const collaborator = await this.collaboratorRepo.findOne({
+            where: { id: collaboratorId, collection: { id: collectionId } },
+            relations: ['user'],
+        });
+
+        if (!collaborator) throw new NotFoundException('Collaborator not found');
+
+        collaborator.permission = permission;
+        await this.collaboratorRepo.save(collaborator);
+
+        return {
+            id: collaborator.id,
+            userId: collaborator.user.id,
+            username: collaborator.user.username,
+            permission: collaborator.permission,
+        };
+    }
+
+    async removeCollaborator(authUser: AuthUser, collectionId: number, collaboratorId: number) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+        if (collection.user.id !== Number(authUser.userId)) throw new ForbiddenException('Only collection owner can remove collaborators');
+
+        const collaborator = await this.collaboratorRepo.findOne({
+            where: { id: collaboratorId, collection: { id: collectionId } },
+        });
+
+        if (!collaborator) throw new NotFoundException('Collaborator not found');
+
+        await this.collaboratorRepo.remove(collaborator);
+
+        return { message: 'Collaborator removed successfully' };
+    }
+
+    async listCollaborators(authUser: AuthUser, collectionId: number) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+        
+        // Check if user is owner or collaborator
+        const isOwner = collection.user.id === Number(authUser.userId);
+        if (!isOwner) {
+            const isCollaborator = await this.collaboratorRepo.findOne({
+                where: { collection: { id: collectionId }, user: { id: Number(authUser.userId) } },
+            });
+            if (!isCollaborator) throw new ForbiddenException('Access denied');
+        }
+
+        const collaborators = await this.collaboratorRepo.find({
+            where: { collection: { id: collectionId } },
+            relations: ['user'],
+            order: { createdAt: 'DESC' },
+        });
+
+        return collaborators.map(collab => ({
+            id: collab.id,
+            userId: collab.user.id,
+            username: collab.user.username,
+            permission: collab.permission,
+            createdAt: collab.createdAt,
+        }));
+    }
+
+    async checkUserPermission(userId: number, collectionId: number): Promise<CollectionPermission | null> {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user'],
+        });
+
+        if (!collection) return null;
+
+        // Owner has admin permission
+        if (collection.user.id === userId) return CollectionPermission.ADMIN;
+
+        // Check collaborator permission
+        const collaborator = await this.collaboratorRepo.findOne({
+            where: { collection: { id: collectionId }, user: { id: userId } },
+        });
+
+        return collaborator ? collaborator.permission : null;
     }
 }

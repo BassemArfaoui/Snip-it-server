@@ -3,6 +3,7 @@ import { BaseEntity } from '../../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { CollectionItem } from './item.entity';
 import { Tag } from '../../tags/entities/tag.entity';
+import { CollectionCollaborator } from './collaborator.entity';
 
 @Entity('collections')
 export class Collection extends BaseEntity {
@@ -22,8 +23,21 @@ export class Collection extends BaseEntity {
     @Column({ default: false })
     allowEdit: boolean;
 
+    @Column({ type: 'timestamp', nullable: true })
+    shareTokenExpiresAt?: Date;
+
+    @Column({ 
+        type: 'enum', 
+        enum: ['view', 'edit', 'admin'],
+        nullable: true 
+    })
+    shareLinkPermission?: string;
+
     @OneToMany(() => CollectionItem, item => item.collection)
     items: CollectionItem[];
+
+    @OneToMany(() => CollectionCollaborator, collaborator => collaborator.collection)
+    collaborators: CollectionCollaborator[];
 
     @ManyToMany(() => Tag)
     @JoinTable({

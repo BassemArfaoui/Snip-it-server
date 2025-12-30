@@ -1,8 +1,11 @@
-import { Controller, Post, Body, Req, UsePipes, ValidationPipe, Param, Get, Put, Delete, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Body, Req, UsePipes, ValidationPipe, Param, Get, Put, Delete, Query, ParseIntPipe, Patch } from '@nestjs/common';
 import { CollectionsService } from './collections.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
 import { AddItemDto } from './dto/add-item.dto';
+import { GenerateShareLinkDto } from './dto/generate-share-link.dto';
+import { AddCollaboratorDto } from './dto/add-collaborator.dto';
+import { UpdateCollaboratorDto } from './dto/update-collaborator.dto';
 import type { Request } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
@@ -116,5 +119,54 @@ export class CollectionsController {
     getTags(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
         const user = req['user'] as AuthUser;
         return this.service.getCollectionTags(user, id);
+    }
+
+    // Collaboration Endpoints
+    @Post(':id/share')
+    @UsePipes(new ValidationPipe({ whitelist: true }))
+    generateShareLink(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Body() dto: GenerateShareLinkDto) {
+        const user = req['user'] as AuthUser;
+        return this.service.generateShareLink(user, id, dto.permission, dto.expiresInDays);
+    }
+
+    @Delete(':id/share')
+    revokeShareLink(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.revokeShareLink(user, id);
+    }
+
+    @Post(':id/collaborators')
+    @UsePipes(new ValidationPipe({ whitelist: true }))
+    addCollaborator(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Body() dto: AddCollaboratorDto) {
+        const user = req['user'] as AuthUser;
+        return this.service.addCollaborator(user, id, dto.userId, dto.permission);
+    }
+
+    @Get(':id/collaborators')
+    listCollaborators(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.listCollaborators(user, id);
+    }
+
+    @Patch(':id/collaborators/:collaboratorId')
+    @UsePipes(new ValidationPipe({ whitelist: true }))
+    updateCollaboratorPermission(
+        @Req() req: Request,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('collaboratorId', ParseIntPipe) collaboratorId: number,
+        @Body() dto: UpdateCollaboratorDto
+    ) {
+        const user = req['user'] as AuthUser;
+        return this.service.updateCollaboratorPermission(user, id, collaboratorId, dto.permission);
+    }
+
+    @Delete(':id/collaborators/:collaboratorId')
+    removeCollaborator(
+        @Req() req: Request,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('collaboratorId', ParseIntPipe) collaboratorId: number
+    ) {
+        const user = req['user'] as AuthUser;
+        return this.service.removeCollaborator(user, id, collaboratorId);
     }
 }
