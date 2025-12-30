@@ -7,25 +7,35 @@ import { Post } from '../posts/entities/post.entity';
 import { User } from '../users/entities/user.entity';
 import { PrivateSnippetVersion } from './entities/private-snippet-version.entity';
 
+export interface AuthUser {
+    userId: string;
+    username: string;
+    email: string;
+}
+
 @Injectable()
 export class PrivateSnippetsService {
     constructor(
         @InjectRepository(PrivateSnippet) private privateSnippetRepo: Repository<PrivateSnippet>,
         @InjectRepository(Snippet) private snippetRepo: Repository<Snippet>,
         @InjectRepository(Post) private postRepo: Repository<Post>,
+        @InjectRepository(User) private userRepo: Repository<User>,
         @InjectRepository(PrivateSnippetVersion) private versionRepo: Repository<PrivateSnippetVersion>,
     ) { }
 
-    async createPrivateSnippet(user: User, title: string | undefined, content: string, language: string) {
+    async createPrivateSnippet(authUser: AuthUser, title: string | undefined, content: string, language: string) {
+        const user = await this.userRepo.findOne({ where: { id: Number(authUser.userId) } });
+        if (!user) throw new NotFoundException('User not found');
+        
         const snippet = this.snippetRepo.create({ title, content, language });
         await this.snippetRepo.save(snippet);
         const privateSnippet = this.privateSnippetRepo.create({ snippet, user });
         return this.privateSnippetRepo.save(privateSnippet);
     }
 
-    async updatePrivateSnippet(user: User, id: number, payload: { title?: string; content?: string; language?: string }) {
+    async updatePrivateSnippet(authUser: AuthUser, id: number, payload: { title?: string; content?: string; language?: string }) {
         const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['snippet', 'user', 'versions'] });
-        if (!ps || ps.user.id !== user.id) throw new NotFoundException('Private snippet not found');
+        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
 
         // Save a version snapshot before updating
         const versionNumber = (ps.versions?.length ?? 0) + 1;
@@ -46,13 +56,13 @@ export class PrivateSnippetsService {
         return { ...ps, versions: undefined }; // trim versions in response
     }
 
-    async getUserPrivateSnippets(user: User, opts: { page?: number; size?: number; q?: string; language?: string } = {}) {
+    async getUserPrivateSnippets(authUser: AuthUser, opts: { page?: number; size?: number; q?: string; language?: string } = {}) {
         const page = opts.page ?? 1;
         const size = Math.min(opts.size ?? 20, 100);
         
         const qb = this.privateSnippetRepo.createQueryBuilder('ps')
             .leftJoinAndSelect('ps.snippet', 'snippet')
-            .where('ps.userId = :userId', { userId: user.id })
+            .where('ps.userId = :userId', { userId: authUser.userId })
             .andWhere('snippet.posted = false');
         
         if (opts.q) {
@@ -67,9 +77,12 @@ export class PrivateSnippetsService {
         return { items, total, page, size };
     }
 
-    async transformToPost(user: User, privateSnippetId: number, payload: { title: string, description: string, publish?: boolean }) {
+    async transformToPost(authUser: AuthUser, privateSnippetId: number, payload: { title: string, description: string, publish?: boolean }) {
+        const user = await this.userRepo.findOne({ where: { id: Number(authUser.userId) } });
+        if (!user) throw new NotFoundException('User not found');
+        
         const ps = await this.privateSnippetRepo.findOne({ where: { id: privateSnippetId }, relations: ['snippet', 'user'] });
-        if (!ps || ps.user.id !== user.id) throw new NotFoundException('Private snippet not found');
+        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
         const post = this.postRepo.create({
             title: payload.title,
             description: payload.description,
@@ -85,18 +98,18 @@ export class PrivateSnippetsService {
         return saved;
     }
 
-    async deletePrivateSnippet(user: User, id: number) {
+    async deletePrivateSnippet(authUser: AuthUser, id: number) {
         const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['user'] });
-        if (!ps || ps.user.id !== user.id) throw new NotFoundException('Private snippet not found');
+        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
         return this.privateSnippetRepo.softRemove(ps);
     }
 
-    async getVersions(user: User, id: number, opts: { page?: number; size?: number } = {}) {
+    async getVersions(authUser: AuthUser, id: number, opts: { page?: number; size?: number } = {}) {
         const page = opts.page ?? 1;
         const size = Math.min(opts.size ?? 20, 100);
         
         const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['user', 'versions'] });
-        if (!ps || ps.user.id !== user.id) throw new NotFoundException('Private snippet not found');
+        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
         
         const sorted = ps.versions.sort((a, b) => b.version - a.version);
         const items = sorted.slice((page - 1) * size, page * size);
@@ -105,9 +118,9 @@ export class PrivateSnippetsService {
         return { items, total, page, size };
     }
 
-    async deleteVersion(user: User, id: number, versionId: number) {
+    async deleteVersion(authUser: AuthUser, id: number, versionId: number) {
         const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['user', 'versions'] });
-        if (!ps || ps.user.id !== user.id) throw new NotFoundException('Private snippet not found');
+        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
         const version = ps.versions.find(v => v.id === versionId);
         if (!version) throw new NotFoundException('Version not found');
         return this.versionRepo.remove(version);
