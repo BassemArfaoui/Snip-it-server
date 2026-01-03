@@ -38,6 +38,7 @@ export class AdminController {
             followingCount: u.followingCount,
             postsCount: u.postsCount,
             solutionsCount: u.solutionsCount,
+            isBanned: (u as any).isBanned ?? false,
             createdAt: u.createdAt,
             updatedAt: u.updatedAt,
         }));
