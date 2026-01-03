@@ -69,6 +69,7 @@ export class ProfileService {
 				issues: issuesCount,
 				score: user.contributorScore ?? 0,
 				isFollowing,
+				role: user.role,
 			};
 		} catch (error) {
 			if (error instanceof NotFoundException) {

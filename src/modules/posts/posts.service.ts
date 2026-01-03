@@ -236,35 +236,46 @@ export class PostsService {
             throw new ForbiddenException('You are not the owner');
         }
 
-        await this.postRepo.update({ id }, { isDeleted: true });
+        await this.postRepo.update({ id }, { isDeleted: true, deletedAt: new Date() });
 
         if (post.snippet?.id) {
-            await this.snippetRepo.update({ id: post.snippet.id }, { isDeleted: true });
+            await this.snippetRepo.update({ id: post.snippet.id }, { isDeleted: true, deletedAt: new Date() });
         }
     }
 
     // Admin: delete any post
     async adminDelete(id: number): Promise<void> {
-        const post = await this.postRepo.findOne({ where: { id, isDeleted: false }, relations: ['snippet'] });
+        // allow admin to delete regardless of current isDeleted state
+        const post = await this.postRepo.findOne({ where: { id }, relations: ['snippet'] });
         if (!post) {
             throw new NotFoundException('Post not found');
         }
 
-        await this.postRepo.update({ id }, { isDeleted: true });
+        await this.postRepo.update({ id }, { isDeleted: true, deletedAt: new Date() });
 
         if (post.snippet?.id) {
-            await this.snippetRepo.update({ id: post.snippet.id }, { isDeleted: true });
+            await this.snippetRepo.update({ id: post.snippet.id }, { isDeleted: true, deletedAt: new Date() });
         }
     }
 
     // Admin: restore a deleted post
     async adminRestore(id: number): Promise<void> {
-        const post = await this.postRepo.findOne({ where: { id } });
-        if (!post) throw new NotFoundException('Post not found');
+        // include soft-deleted rows in the lookup in case DeleteDateColumn/soft-delete is used
+        const post = await this.postRepo.findOne({ where: { id }, relations: ['snippet'], withDeleted: true as any });
+        if (!post) {
+            console.warn(`[PostsService] adminRestore: post id=${id} not found (withDeleted search)`);
+            throw new NotFoundException('Post not found');
+        }
 
-        await this.postRepo.update({ id }, { isDeleted: false });
+        // set fields on entity and save so TypeORM properly persists DeleteDateColumn and related fields
+        post.isDeleted = false;
+        (post as any).deletedAt = null;
+        await this.postRepo.save(post);
+
         if (post.snippet?.id) {
-            await this.snippetRepo.update({ id: post.snippet.id }, { isDeleted: false });
+            post.snippet.isDeleted = false as any;
+            (post.snippet as any).deletedAt = null;
+            await this.snippetRepo.save(post.snippet);
         }
     }
 }

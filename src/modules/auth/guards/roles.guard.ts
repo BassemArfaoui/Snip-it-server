@@ -29,6 +29,11 @@ export class RolesGuard implements CanActivate {
         const user = await this.usersService.findById(jwtUser.userId);
         if (!user) return false;
 
-        return requiredRoles.some(role => user.role === role);
+        // Compare roles case-insensitively to tolerate existing seeded values
+        return requiredRoles.some(required => {
+            const userRole = (user.role || '').toString().toLowerCase();
+            const reqRole = (required || '').toString().toLowerCase();
+            return userRole === reqRole;
+        });
     }
 }
