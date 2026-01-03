@@ -86,11 +86,17 @@ export class CollectionsService {
     async getCollectionById(authUser: AuthUser, id: number) {
         const collection = await this.collectionRepo.findOne({
             where: { id },
-            relations: ['user', 'items'],
+            relations: ['user', 'items', 'collaborators', 'collaborators.user'],
         });
 
         if (!collection) throw new NotFoundException('Collection not found');
-        if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
+
+        // Check permissions - VIEW allows reading
+        const userPermission = collection.user.id === Number(authUser.userId) 
+            ? CollectionPermission.ADMIN 
+            : collection.collaborators?.find(c => c.user.id === Number(authUser.userId))?.permission;
+
+        if (!userPermission) throw new ForbiddenException('You do not have access to this collection');
 
         const { user: _, ...result } = collection;
         return result;
@@ -143,11 +149,18 @@ export class CollectionsService {
     ) {
         const collection = await this.collectionRepo.findOne({
             where: { id: collectionId },
-            relations: ['user', 'items'],
+            relations: ['user', 'items', 'collaborators', 'collaborators.user'],
         });
 
         if (!collection) throw new NotFoundException('Collection not found');
-        if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
+
+        // Check permissions
+        const userPermission = collection.user.id === Number(authUser.userId) 
+            ? CollectionPermission.ADMIN 
+            : collection.collaborators?.find(c => c.user.id === Number(authUser.userId))?.permission;
+
+        if (!userPermission) throw new ForbiddenException('You do not have access to this collection');
+        if (userPermission === CollectionPermission.VIEW) throw new ForbiddenException('You do not have permission to modify this collection');
 
         // Check if item already exists
         const existing = collection.items.find(
@@ -169,11 +182,18 @@ export class CollectionsService {
     async removeItem(authUser: AuthUser, collectionId: number, targetId: number, targetType: CollectionItemEnum) {
         const collection = await this.collectionRepo.findOne({
             where: { id: collectionId },
-            relations: ['user', 'items'],
+            relations: ['user', 'items', 'collaborators', 'collaborators.user'],
         });
 
         if (!collection) throw new NotFoundException('Collection not found');
-        if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
+
+        // Check permissions
+        const userPermission = collection.user.id === Number(authUser.userId) 
+            ? CollectionPermission.ADMIN 
+            : collection.collaborators?.find(c => c.user.id === Number(authUser.userId))?.permission;
+
+        if (!userPermission) throw new ForbiddenException('You do not have access to this collection');
+        if (userPermission === CollectionPermission.VIEW) throw new ForbiddenException('You do not have permission to modify this collection');
 
         const item = collection.items.find(
             i => i.targetId === targetId && i.targetType === targetType,
@@ -193,18 +213,29 @@ export class CollectionsService {
         const [sourceCollection, destCollection] = await Promise.all([
             this.collectionRepo.findOne({
                 where: { id: sourceCollectionId },
-                relations: ['user', 'items'],
+                relations: ['user', 'items', 'collaborators', 'collaborators.user'],
             }),
             this.collectionRepo.findOne({
                 where: { id: destinationCollectionId },
-                relations: ['user', 'items'],
+                relations: ['user', 'items', 'collaborators', 'collaborators.user'],
             }),
         ]);
 
         if (!sourceCollection) throw new NotFoundException('Source collection not found');
         if (!destCollection) throw new NotFoundException('Destination collection not found');
-        if (sourceCollection.user.id !== Number(authUser.userId) || destCollection.user.id !== Number(authUser.userId)) {
-            throw new NotFoundException('Collection not found');
+
+        // Check permissions for both collections
+        const sourcePermission = sourceCollection.user.id === Number(authUser.userId) 
+            ? CollectionPermission.ADMIN 
+            : sourceCollection.collaborators?.find(c => c.user.id === Number(authUser.userId))?.permission;
+        
+        const destPermission = destCollection.user.id === Number(authUser.userId) 
+            ? CollectionPermission.ADMIN 
+            : destCollection.collaborators?.find(c => c.user.id === Number(authUser.userId))?.permission;
+
+        if (!sourcePermission || !destPermission) throw new ForbiddenException('You do not have access to one or both collections');
+        if (sourcePermission === CollectionPermission.VIEW || destPermission === CollectionPermission.VIEW) {
+            throw new ForbiddenException('You do not have permission to modify these collections');
         }
 
         const item = sourceCollection.items.find(
@@ -231,11 +262,18 @@ export class CollectionsService {
     ) {
         const collection = await this.collectionRepo.findOne({
             where: { id: collectionId },
-            relations: ['user', 'items'],
+            relations: ['user', 'items', 'collaborators', 'collaborators.user'],
         });
 
         if (!collection) throw new NotFoundException('Collection not found');
-        if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
+
+        // Check permissions
+        const userPermission = collection.user.id === Number(authUser.userId) 
+            ? CollectionPermission.ADMIN 
+            : collection.collaborators?.find(c => c.user.id === Number(authUser.userId))?.permission;
+
+        if (!userPermission) throw new ForbiddenException('You do not have access to this collection');
+        if (userPermission === CollectionPermission.VIEW) throw new ForbiddenException('You do not have permission to modify this collection');
 
         const item = collection.items.find(
             i => i.targetId === targetId && i.targetType === targetType,
@@ -256,11 +294,17 @@ export class CollectionsService {
 
         const collection = await this.collectionRepo.findOne({
             where: { id: collectionId },
-            relations: ['user'],
+            relations: ['user', 'collaborators', 'collaborators.user'],
         });
 
         if (!collection) throw new NotFoundException('Collection not found');
-        if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
+
+        // Check permissions - VIEW allows reading
+        const userPermission = collection.user.id === Number(authUser.userId) 
+            ? CollectionPermission.ADMIN 
+            : collection.collaborators?.find(c => c.user.id === Number(authUser.userId))?.permission;
+
+        if (!userPermission) throw new ForbiddenException('You do not have access to this collection');
 
         let qb = this.itemRepo.createQueryBuilder('ci').where('ci.collectionId = :collectionId', {
             collectionId,
