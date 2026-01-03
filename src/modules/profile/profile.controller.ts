@@ -61,13 +61,13 @@ export class ProfileController {
 	}
 
 	@Get(':id/posts')
-	async getUserPosts(@Param('id') id: string) {
+	async getUserPosts(@Param('id') id: string, @CurrentUser() currentUser?: User) {
 		try {
 			const userId = Number(id);
 			if (isNaN(userId) || userId <= 0) {
 				throw new ForbiddenException('Invalid user ID');
 			}
-			return await this.profileService.getUserPosts(userId);
+			return await this.profileService.getUserPosts(userId, currentUser);
 		} catch (error) {
 			if (error instanceof ForbiddenException || error instanceof NotFoundException) {
 				throw error;
