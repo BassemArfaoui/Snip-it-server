@@ -1,5 +1,5 @@
 import { randomBytes, randomInt } from 'crypto';
-import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
@@ -78,11 +78,15 @@ export class AuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
+        if (user.isBanned) {
+            throw new ForbiddenException('Account banned');
+        }
+
         if (!user.isEmailVerified) {
             throw new UnauthorizedException('Please verify your email to login.');
         }
 
-        const tokens = this.generateTokensSync({ id: user.id, username: user.username, email: user.email });
+        const tokens = this.generateTokensSync({ id: user.id, username: user.username, email: user.email, role: user.role });
         await this.persistRefreshToken(user.id, tokens.refreshToken);
 
         return tokens;
@@ -125,7 +129,7 @@ export class AuthService {
             this.usersService.markEmailVerified(user.id),
         ]);
 
-        const tokens = this.generateTokensSync({ id: user.id, username: user.username, email: user.email });
+        const tokens = this.generateTokensSync({ id: user.id, username: user.username, email: user.email, role: user.role });
         await this.persistRefreshToken(user.id, tokens.refreshToken);
 
         return { message: 'Email verified successfully.', tokens };
@@ -162,14 +166,19 @@ export class AuthService {
             throw new UnauthorizedException('Invalid refresh token.');
         }
 
-        const tokens = this.generateTokensSync({ id: user.id, email: user.email, username: user.username });
+        const tokens = this.generateTokensSync({ id: user.id, email: user.email, username: user.username, role: user.role });
         await this.persistRefreshToken(user.id, tokens.refreshToken);
 
         return tokens;
     }
 
-    async generateTokens(user: { id: number; username?: string; email: string }): Promise<AuthTokens> {
-        const payload = { sub: user.id, username: user.username || user.email, email: user.email };
+    async generateTokens(user: { id: number; username?: string; email: string; role?: string }): Promise<AuthTokens> {
+        const payload = { 
+            sub: user.id, 
+            username: user.username || user.email, 
+            email: user.email,
+            role: user.role || 'user'
+        };
         const tokens = {
             accessToken: this.jwtService.signAccessToken(payload),
             refreshToken: this.jwtService.signRefreshToken(payload),
@@ -178,8 +187,13 @@ export class AuthService {
         return tokens;
     }
 
-    private generateTokensSync(user: { id: number; username: string; email: string }): AuthTokens {
-        const payload = { sub: user.id, username: user.username, email: user.email };
+    private generateTokensSync(user: { id: number; username: string; email: string; role?: string }): AuthTokens {
+        const payload = { 
+            sub: user.id, 
+            username: user.username, 
+            email: user.email,
+            role: user.role || 'user'
+        };
         return {
             accessToken: this.jwtService.signAccessToken(payload),
             refreshToken: this.jwtService.signRefreshToken(payload),

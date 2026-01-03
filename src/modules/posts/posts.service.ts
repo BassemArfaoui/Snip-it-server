@@ -242,4 +242,29 @@ export class PostsService {
             await this.snippetRepo.update({ id: post.snippet.id }, { isDeleted: true });
         }
     }
+
+    // Admin: delete any post
+    async adminDelete(id: number): Promise<void> {
+        const post = await this.postRepo.findOne({ where: { id, isDeleted: false }, relations: ['snippet'] });
+        if (!post) {
+            throw new NotFoundException('Post not found');
+        }
+
+        await this.postRepo.update({ id }, { isDeleted: true });
+
+        if (post.snippet?.id) {
+            await this.snippetRepo.update({ id: post.snippet.id }, { isDeleted: true });
+        }
+    }
+
+    // Admin: restore a deleted post
+    async adminRestore(id: number): Promise<void> {
+        const post = await this.postRepo.findOne({ where: { id } });
+        if (!post) throw new NotFoundException('Post not found');
+
+        await this.postRepo.update({ id }, { isDeleted: false });
+        if (post.snippet?.id) {
+            await this.snippetRepo.update({ id: post.snippet.id }, { isDeleted: false });
+        }
+    }
 }

@@ -102,6 +102,32 @@ export class IssuesService {
     });
   }
 
+  // Admin: delete any issue
+  async adminDelete(issueId: number): Promise<void> {
+    return this.dataSource.transaction(async (manager) => {
+      const issue = await manager.findOne(Issue, {
+        where: { id: issueId, isDeleted: false },
+        relations: ['user'],
+      });
+
+      if (!issue) {
+        throw new NotFoundException('Issue not found');
+      }
+
+      await manager.update(Issue, { id: issueId }, { isDeleted: true });
+
+      // Recalculate contributor score for the owner
+      await this.profileService.calculateAndPersistScore(issue.user.id);
+    });
+  }
+
+  // Admin: restore any issue
+  async adminRestore(issueId: number): Promise<void> {
+    const issue = await this.issueRepository.findById(issueId);
+    if (!issue) throw new NotFoundException('Issue not found');
+    await this.issueRepository.updateIssue(issueId, { isDeleted: false } as any);
+  }
+
   async resolve(issueId: number, userId: number) {
     const issue = await this.issueRepository.findById(issueId);
     if (!issue) throw new NotFoundException('Issue not found');

@@ -80,4 +80,18 @@ export class CommentsService {
 
         await this.commentRepo.update({ id: commentId }, { isDeleted: true });
     }
+
+    // Admin: delete any comment
+    async adminDelete(commentId: number): Promise<void> {
+        const comment = await this.commentRepo.findOne({ where: { id: commentId, isDeleted: false } });
+        if (!comment) throw new NotFoundException('Comment not found');
+        await this.commentRepo.update({ id: commentId }, { isDeleted: true });
+    }
+
+    // Admin: restore comment
+    async adminRestore(commentId: number): Promise<void> {
+        const comment = await this.commentRepo.findOne({ where: { id: commentId } });
+        if (!comment) throw new NotFoundException('Comment not found');
+        await this.commentRepo.update({ id: commentId }, { isDeleted: false });
+    }
 }

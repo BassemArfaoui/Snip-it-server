@@ -10,5 +10,6 @@ import { Post } from '../posts/entities/post.entity';
     imports: [TypeOrmModule.forFeature([Comment, User, Post])],
     controllers: [CommentsController],
     providers: [CommentsService],
+    exports: [CommentsService],
 })
 export class CommentsModule { }

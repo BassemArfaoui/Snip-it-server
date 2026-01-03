@@ -39,6 +39,12 @@ export class User extends BaseEntity {
     @Column({ nullable: true })
     imageProfile: string;
 
+    @Column({ default: false })
+    isBanned: boolean;
+
+    @Column({ type: 'timestamptz', nullable: true })
+    bannedAt?: Date;
+
     @Column({ nullable: true })
     oauthProvider?: string;
 
