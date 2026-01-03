@@ -137,13 +137,15 @@ export class ProfileService {
 		}
 	}
 
-	async getUserIssues(userId: number) {
+	async getUserIssues(userId: number, requester?: User) {
 		try {
 			const user = await this.usersRepo.findOne({ where: { id: userId } });
 			if (!user) {
 				throw new NotFoundException('User not found');
 			}
-			const issues = await this.issuesRepo.find({ where: { user: { id: userId } } });
+			// Only include soft-deleted issues for admins
+			const includeDeleted = !!(requester && (requester.role || '').toString().toLowerCase() === 'admin');
+			const issues = await this.issuesRepo.find({ where: { user: { id: userId } }, withDeleted: includeDeleted as any });
 			return issues || [];
 		} catch (error) {
 			if (error instanceof NotFoundException) {
