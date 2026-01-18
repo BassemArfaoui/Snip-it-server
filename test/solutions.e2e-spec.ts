@@ -6,7 +6,7 @@ import { DataSource } from 'typeorm';
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
-describe.skip('Solutions (e2e)', () => {
+describe('Solutions (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let authToken: string;

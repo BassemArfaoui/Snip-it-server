@@ -6,7 +6,7 @@ import { DataSource } from 'typeorm';
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
-describe.skip('Accept Solution Flow (e2e)', () => {
+describe('Accept Solution Flow (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let issueOwnerToken: string;

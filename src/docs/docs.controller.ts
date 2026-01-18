@@ -531,6 +531,327 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                 </div>
             </div>
 
+            <!-- Issues Section -->
+            <div class="section">
+                <h2 class="section-title">Issues API</h2>
+
+                <!-- Create Issue -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="path">/issues</span>
+                    </div>
+                    <div class="description">Create a new coding issue (requires authentication)</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">Request Body</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">content</span> <span class="param-type">(string, min 10)</span> <span class="param-required">*</span></li>
+                                <li><span class="param-name">language</span> <span class="param-type">(string)</span> <span class="param-required">*</span></li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (201)</div>
+                            <div class="example">
+{
+  "data": {
+    "id": 1,
+    "content": "Issue description...",
+    "language": "javascript",
+    "solutionsCount": 0,
+    "isResolved": false,
+    "createdAt": "2025-12-20T..."
+  },
+  "message": "success"
+}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="note">🔒 Requires Bearer token in Authorization header</div>
+                </div>
+
+                <!-- Get All Issues -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="path">/issues</span>
+                    </div>
+                    <div class="description">Get all issues with optional filters and pagination</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">Query Parameters</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">page</span> <span class="param-type">(number)</span> - Page number (default: 1)</li>
+                                <li><span class="param-name">limit</span> <span class="param-type">(number)</span> - Items per page (default: 10)</li>
+                                <li><span class="param-name">language</span> <span class="param-type">(string)</span> - Filter by language</li>
+                                <li><span class="param-name">is_resolved</span> <span class="param-type">(boolean)</span> - Filter by status</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (200)</div>
+                            <div class="example">
+{
+  "data": [
+    {
+      "id": 1,
+      "content": "...",
+      "language": "javascript",
+      "solutionsCount": 3,
+      "isResolved": false
+    }
+  ],
+  "message": "success"
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Get Issue by ID -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="path">/issues/:id</span>
+                    </div>
+                    <div class="description">Get a specific issue by ID</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">URL Parameters</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">id</span> <span class="param-type">(number)</span> <span class="param-required">*</span> - Issue ID</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (200)</div>
+                            <div class="example">
+{
+  "data": {
+    "id": 1,
+    "content": "...",
+    "language": "javascript",
+    "user": {...},
+    "solutions": [...]
+  },
+  "message": "success"
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Update Issue -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method put" style="background: #f97316;">PATCH</span>
+                        <span class="path">/issues/:id</span>
+                    </div>
+                    <div class="description">Update an issue (only owner can update)</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">Request Body</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">content</span> <span class="param-type">(string, min 10)</span> (optional)</li>
+                                <li><span class="param-name">language</span> <span class="param-type">(string)</span> (optional)</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (200)</div>
+                            <div class="example">
+{
+  "data": {
+    "id": 1,
+    "content": "Updated...",
+    "language": "python"
+  },
+  "message": "success"
+}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="note">🔒 Requires Bearer token - Only issue owner can update</div>
+                </div>
+
+                <!-- Delete Issue -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="path">/issues/:id</span>
+                    </div>
+                    <div class="description">Delete an issue (only owner can delete)</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">URL Parameters</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">id</span> <span class="param-type">(number)</span> <span class="param-required">*</span> - Issue ID</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (204)</div>
+                            <div class="example">No Content</div>
+                        </div>
+                    </div>
+                    <div class="note">🔒 Requires Bearer token - Only issue owner can delete</div>
+                </div>
+            </div>
+
+            <!-- Solutions Section -->
+            <div class="section">
+                <h2 class="section-title">Solutions API</h2>
+
+                <!-- Create Solution -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="path">/issues/:issueId/solutions</span>
+                    </div>
+                    <div class="description">Create a solution for an issue (requires authentication)</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">Request Body</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">textContent</span> <span class="param-type">(string, min 10)</span> (optional)</li>
+                                <li><span class="param-name">externalLink</span> <span class="param-type">(URL)</span> (optional)</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (201)</div>
+                            <div class="example">
+{
+  "data": {
+    "id": 1,
+    "textContent": "Solution...",
+    "externalLink": null,
+    "isAccepted": false,
+    "createdAt": "2025-12-20T..."
+  },
+  "message": "success"
+}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="note">📝 Must provide either textContent or externalLink (or both)</div>
+                </div>
+
+                <!-- Get Solutions -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="path">/issues/:issueId/solutions</span>
+                    </div>
+                    <div class="description">Get all solutions for a specific issue</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">URL Parameters</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">issueId</span> <span class="param-type">(number)</span> <span class="param-required">*</span> - Issue ID</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (200)</div>
+                            <div class="example">
+{
+  "data": [
+    {
+      "id": 1,
+      "textContent": "...",
+      "contributor": {...},
+      "isAccepted": false,
+      "likesCount": 5
+    }
+  ],
+  "message": "success"
+}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Update Solution -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method put" style="background: #f97316;">PATCH</span>
+                        <span class="path">/solutions/:id</span>
+                    </div>
+                    <div class="description">Update a solution (only author can update)</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">Request Body</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">textContent</span> <span class="param-type">(string, min 10)</span> (optional)</li>
+                                <li><span class="param-name">externalLink</span> <span class="param-type">(URL)</span> (optional)</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (200)</div>
+                            <div class="example">
+{
+  "data": {
+    "id": 1,
+    "textContent": "Updated...",
+    "externalLink": "https://..."
+  },
+  "message": "success"
+}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="note">🔒 Requires Bearer token - Only solution author can update</div>
+                </div>
+
+                <!-- Delete Solution -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="path">/solutions/:id</span>
+                    </div>
+                    <div class="description">Delete a solution (only author can delete)</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">URL Parameters</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">id</span> <span class="param-type">(number)</span> <span class="param-required">*</span> - Solution ID</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (204)</div>
+                            <div class="example">No Content</div>
+                        </div>
+                    </div>
+                    <div class="note">🔒 Requires Bearer token - Only solution author can delete</div>
+                </div>
+
+                <!-- Accept Solution -->
+                <div class="endpoint">
+                    <div class="endpoint-header">
+                        <span class="method put" style="background: #f97316;">PATCH</span>
+                        <span class="path">/solutions/:id/accept</span>
+                    </div>
+                    <div class="description">Accept a solution as the correct answer (only issue owner can accept)</div>
+                    <div class="details">
+                        <div class="detail-group">
+                            <div class="detail-title">URL Parameters</div>
+                            <ul class="param-list">
+                                <li><span class="param-name">id</span> <span class="param-type">(number)</span> <span class="param-required">*</span> - Solution ID</li>
+                            </ul>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-title">Response (200)</div>
+                            <div class="example">
+{
+  "data": {
+    "id": 1,
+    "isAccepted": true,
+    "acceptedAt": "2025-12-20T..."
+  },
+  "message": "success"
+}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="note">✅ Only issue owner can accept solutions. This marks the issue as resolved.</div>
+                </div>
+            </div>
+
             <!-- Quick Start Section -->
             <div class="section">
                 <h2 class="section-title">Quick Start</h2>
@@ -546,7 +867,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                         <li><strong>Use accessToken</strong> → Add to Authorization header for protected routes</li>
                         <li><strong>POST /auth/refresh</strong> → When access token expires, use refresh token</li>
                     </ol>
-                    <div class="note">💡 Tip: Import the Postman collection from /scripts/postman_auth_collection.json for easy testing</div>
+                    <div class="note">💡 Tip: Import the Postman collection from /scripts/postman_collection.json for easy testing</div>
                 </div>
             </div>
         </div>

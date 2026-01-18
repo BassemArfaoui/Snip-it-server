@@ -33,7 +33,7 @@ export class IssuesController {
   }
 
   @Get()
-  findAll(@Query() query: IssueQueryDto): Promise<IssueResponseDto[]> {
+  async findAll(@Query() query: IssueQueryDto): Promise<IssueResponseDto[]> {
     const parsed = {
       language: query.language,
       isResolved:
@@ -44,7 +44,9 @@ export class IssuesController {
       limit: query.limit ? Number(query.limit) : 10,
     };
 
-    return this.service.findAll(parsed);
+    const issues = await this.service.findAll(parsed);
+    console.log('Returning issues:', issues.length, 'issues');
+    return issues;
   }
 
   @Get(':id')

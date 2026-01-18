@@ -6,7 +6,7 @@ import { DataSource } from 'typeorm';
 import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
-describe.skip('Issues (e2e)', () => {
+describe('Issues (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   let authToken: string;
@@ -36,24 +36,49 @@ describe.skip('Issues (e2e)', () => {
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
     // Create a test user and get auth token
+    const uniqueTimestamp = Date.now();
     const testUser = {
-      username: 'testuser',
-      email: 'test@example.com',
+      username: `testuser_${uniqueTimestamp}`,
+      email: `test_${uniqueTimestamp}@example.com`,
       password: 'password123',
+      fullName: 'Test User',
     };
 
-    const signupResponse = await request(app.getHttpServer())
-      .post('/auth/signup')
-      .send(testUser);
+    // Register the user
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send(testUser)
+      .expect(HttpStatus.CREATED);
 
-    authToken = signupResponse.body.data.accessToken;
-    userId = signupResponse.body.data.user.id;
+    // Manually verify email in database for testing purposes
+    await dataSource.query(
+      'UPDATE users SET "isEmailVerified" = true WHERE email = $1',
+      [testUser.email]
+    );
+
+    // Login to get the auth token
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        identifier: testUser.email,
+        password: testUser.password,
+      })
+      .expect(HttpStatus.OK);
+
+    authToken = loginResponse.body.data.accessToken;
+    
+    // Get userId from database
+    const userResult = await dataSource.query(
+      'SELECT id FROM users WHERE email = $1',
+      [testUser.email]
+    );
+    userId = userResult[0].id;
   });
 
   afterAll(async () => {
     // Clean up test data
     if (dataSource) {
-      await dataSource.query('DELETE FROM issues WHERE user_id = $1', [userId]);
+      await dataSource.query('DELETE FROM issues WHERE "userId" = $1', [userId]);
       await dataSource.query('DELETE FROM users WHERE id = $1', [userId]);
     }
     await app.close();

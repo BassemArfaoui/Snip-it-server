@@ -536,55 +536,408 @@
               "mode": "raw",
               "raw": "{\n  \"targetId\": 1,\n  \"targetType\": \"solution\",\n  \"isDislike\": false\n}"
             },
-            "url": "{{base_url}}/votes",
-            "description": "Vote on content (like/dislike). targetType: 'issue', 'solution', 'post', etc. isDislike: true for downvote, false for upvote."
-          }
+            "response": []
+        },
+        {
+            "name": "Issues",
+            "item": [
+                {
+                    "name": "Create Issue",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"content\": \"I'm having trouble with async/await in JavaScript. My promise chain keeps breaking.\",\n    \"language\": \"javascript\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/issues",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "issues"
+                            ]
+                        },
+                        "description": "Create a new issue. Requires authentication."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Issues",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/issues?page=1&limit=10",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "issues"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "language",
+                                    "value": "javascript",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "is_resolved",
+                                    "value": "false",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Get all issues with optional filters (language, is_resolved) and pagination."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Issue by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/issues/1",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "issues",
+                                "1"
+                            ]
+                        },
+                        "description": "Get a specific issue by ID."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Issue",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"content\": \"Updated: I'm having trouble with async/await in JavaScript. My promise chain keeps breaking when handling errors.\",\n    \"language\": \"javascript\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/issues/1",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "issues",
+                                "1"
+                            ]
+                        },
+                        "description": "Update an existing issue. Only the issue owner can update. Requires authentication."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Issue",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/issues/1",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "issues",
+                                "1"
+                            ]
+                        },
+                        "description": "Delete an issue. Only the issue owner can delete. Requires authentication."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Solutions",
+            "item": [
+                {
+                    "name": "Create Solution",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"textContent\": \"You should wrap your async code in a try-catch block to handle errors properly. Here's an example: try { const result = await myPromise(); } catch (error) { console.error(error); }\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/issues/1/solutions",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "issues",
+                                "1",
+                                "solutions"
+                            ]
+                        },
+                        "description": "Create a solution for a specific issue. Can include textContent or externalLink. Requires authentication."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Solution with Link",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"externalLink\": \"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/issues/1/solutions",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "issues",
+                                "1",
+                                "solutions"
+                            ]
+                        },
+                        "description": "Create a solution with an external link."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Solutions for Issue",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:3000/issues/1/solutions",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "issues",
+                                "1",
+                                "solutions"
+                            ]
+                        },
+                        "description": "Get all solutions for a specific issue."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Solution",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"textContent\": \"Updated: You should wrap your async code in a try-catch block. Also consider using Promise.allSettled() for multiple promises.\"\n}"
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/solutions/1",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "solutions",
+                                "1"
+                            ]
+                        },
+                        "description": "Update a solution. Only the solution author can update. Requires authentication."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Solution",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/solutions/1",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "solutions",
+                                "1"
+                            ]
+                        },
+                        "description": "Delete a solution. Only the solution author can delete. Requires authentication."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Accept Solution",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{jwt_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "http://localhost:3000/solutions/1/accept",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "3000",
+                            "path": [
+                                "solutions",
+                                "1",
+                                "accept"
+                            ]
+                        },
+                        "description": "Accept a solution for an issue. Only the issue owner can accept solutions. Requires authentication."
+                    },
+                    "response": []
+                }
+            ]
         }
-      ]
-    }
-  ],
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:3000",
-      "type": "string",
-      "description": "Backend server URL"
-    },
-    {
-      "key": "accessToken",
-      "value": "",
-      "type": "string",
-      "description": "JWT access token (auto-set after login/register)"
-    },
-    {
-      "key": "refreshToken",
-      "value": "",
-      "type": "string",
-      "description": "JWT refresh token (auto-set after login/register)"
-    },
-    {
-      "key": "userId",
-      "value": "",
-      "type": "string",
-      "description": "Current user ID (auto-set after login/register)"
-    },
-    {
-      "key": "issueId",
-      "value": "1",
-      "type": "string",
-      "description": "Issue ID for testing (auto-set after creating issue)"
-    },
-    {
-      "key": "solutionId",
-      "value": "1",
-      "type": "string",
-      "description": "Solution ID for testing (auto-set after creating solution)"
-    },
-    {
-      "key": "targetUserId",
-      "value": "2",
-      "type": "string",
-      "description": "User ID to follow/unfollow"
-    }
-  ]
+    ],
+    "variable": [
+        {
+            "key": "jwt_token",
+            "value": "",
+            "type": "string",
+            "description": "Paste the JWT token generated by 'npm run create-token' here"
+        }
+    ]
 }

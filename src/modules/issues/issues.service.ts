@@ -21,12 +21,16 @@ export class IssuesService {
   ) {}
 
   async create(dto: CreateIssueDto, userId: number) {
-    return this.dataSource.transaction(async (manager) => {
-      // Create issue
-      const issue = manager.create(Issue, {
+    // Create issue with user relation loaded
+    const issue = await this.dataSource.transaction(async (manager) => {
+      // Create issue with user relation
+      const user = await manager.findOne(User, { where: { id: userId } });
+      if (!user) throw new NotFoundException('User not found');
+
+      const newIssue = manager.create(Issue, {
         content: dto.content,
         language: dto.language,
-        user: { id: userId } as User,
+        user: user,
       });
 
       const savedIssue = await manager.save(issue);
@@ -36,6 +40,9 @@ export class IssuesService {
 
       return savedIssue;
     });
+
+    // Return the created issue with user relation already loaded
+    return IssueResponseDto.fromEntity(issue);
   }
 
   async findAll(query: {
