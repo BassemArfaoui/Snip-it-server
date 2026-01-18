@@ -15,8 +15,8 @@ import { SolutionsService } from './solutions.service';
 import { CreateSolutionDto } from './dto/create-solution.dto';
 import { UpdateSolutionDto } from './dto/update-solution.dto';
 import { SolutionResponseDto } from './dto/solution-response.dto';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { CurrentUser } from './auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorator/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 
 @Controller()

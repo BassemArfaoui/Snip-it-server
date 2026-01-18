@@ -17,8 +17,8 @@ import { CreateIssueDto } from './dto/create-issue.dto';
 import { UpdateIssueDto } from './dto/update-issue.dto';
 import { IssueQueryDto } from './dto/issue-query.dto';
 import { IssueResponseDto } from './dto/issue-response.dto';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { CurrentUser } from './auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorator/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 
 @Controller('issues')
