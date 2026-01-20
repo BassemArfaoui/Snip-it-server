@@ -14,6 +14,9 @@ export class Issue extends BaseEntity {
     @Column()
     language: string;
 
+    @Column({ type: 'text', nullable: true })
+    imageUrl: string;
+
     @Column({ default: 0 })
     solutionsCount: number;
 

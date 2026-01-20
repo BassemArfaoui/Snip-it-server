@@ -9,4 +9,8 @@ export class UpdateIssueDto {
   @IsOptional()
   @IsString()
   language?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }

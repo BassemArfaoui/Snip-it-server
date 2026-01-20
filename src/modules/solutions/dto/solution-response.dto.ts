@@ -14,6 +14,8 @@ export class SolutionResponseDto {
 
   externalLink?: string;
 
+  imageUrl?: string;
+
   likesCount: number;
   dislikesCount: number;
   commentsCount: number;
@@ -34,6 +36,7 @@ export class SolutionResponseDto {
 
       textContent: solution.textContent,
       externalLink: solution.externalLink,
+      imageUrl: solution.imageUrl,
 
       likesCount: solution.likesCount,
       dislikesCount: solution.dislikesCount,

@@ -4,6 +4,7 @@ export class IssueResponseDto {
   id: number;
   content: string;
   language?: string;
+  imageUrl?: string;
   solutions_count: number;
   is_resolved: boolean;
   likesCount: number;
@@ -19,6 +20,7 @@ export class IssueResponseDto {
       id: issue.id,
       content: issue.content,
       language: issue.language,
+      imageUrl: issue.imageUrl,
       solutions_count: issue.solutionsCount,
       is_resolved: issue.isResolved,
       likesCount: issue.likesCount,

@@ -22,6 +22,9 @@ export class Solution extends BaseEntity {
     @Column({ nullable: true })
     externalLink: string;
 
+    @Column({ type: 'text', nullable: true })
+    imageUrl: string;
+
     @Column({ default: 0 })
     likesCount: number;
 

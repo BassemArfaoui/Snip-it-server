@@ -30,6 +30,7 @@ export class IssuesService {
     const newIssue = manager.create(Issue, {
       content: dto.content,
       language: dto.language,
+      imageUrl: dto.imageUrl,
       user: user,
     });
 

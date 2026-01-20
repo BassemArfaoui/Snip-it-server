@@ -27,8 +27,8 @@ export class SolutionsService {
     dto: CreateSolutionDto,
   ): Promise<Solution> {
     // Validate that at least one field is provided
-    if (!dto.textContent && !dto.externalLink) {
-      throw new BadRequestException('Either textContent or externalLink must be provided');
+    if (!dto.textContent && !dto.externalLink && !dto.imageUrl) {
+      throw new BadRequestException('Either textContent, externalLink, or imageUrl must be provided');
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -52,6 +52,7 @@ export class SolutionsService {
         contributor,
         textContent: dto.textContent,
         externalLink: dto.externalLink,
+        imageUrl: dto.imageUrl,
       });
 
       const savedSolution = await manager.save(solution);

@@ -9,4 +9,8 @@ export class UpdateSolutionDto {
   @IsOptional()
   @IsUrl({}, { message: 'Invalid URL format' })
   externalLink?: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }

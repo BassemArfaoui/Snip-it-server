@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateIssueDto {
   @IsString()
@@ -9,4 +9,8 @@ export class CreateIssueDto {
   @IsString()
   @IsNotEmpty()
   language: string;
+
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
 }
