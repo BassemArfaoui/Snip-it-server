@@ -67,6 +67,7 @@ export class AppModule implements NestModule {
         { path: '/', method: RequestMethod.GET },
         { path: 'posts/share/*path', method: RequestMethod.GET },
         { path: 'comments/posts/*path', method: RequestMethod.GET },
+        { path: 'comments/solutions/*path', method: RequestMethod.GET },
         { path: 'auth/*path', method: RequestMethod.ALL },
         { path: 'docs/api', method: RequestMethod.ALL },
         { path: 'issues', method: RequestMethod.GET },

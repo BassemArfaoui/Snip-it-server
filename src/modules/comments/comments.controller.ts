@@ -78,4 +78,32 @@ export class CommentsController {
         await this.commentsService.delete(id, Number(userId));
         return { success: true };
     }
+
+    // Public: list comments for a solution (paginated)
+    @Get('solutions/:solutionId')
+    async listSolutionComments(
+        @Param('solutionId', ParseIntPipe) solutionId: number,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        return this.commentsService.listSolutionComments(solutionId, {
+            page: page ? Number(page) : undefined,
+            limit: limit ? Number(limit) : undefined,
+        });
+    }
+
+    // Auth required: create a comment on a solution
+    @Post('solutions/:solutionId')
+    async createSolutionComment(
+        @Param('solutionId', ParseIntPipe) solutionId: number,
+        @Req() req: Request & { user?: JwtPayload },
+        @Body() dto: CreateCommentDto,
+    ) {
+        const userId = req.user?.userId;
+        if (!userId) {
+            throw new UnauthorizedException('User not authenticated');
+        }
+
+        return this.commentsService.createSolutionComment(solutionId, Number(userId), dto);
+    }
 }

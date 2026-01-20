@@ -2,6 +2,8 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
+import { ResponseInterceptor } from '../src/common/interceptors/response.interceptor';
+import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
 
 function uniqueSuffix() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -40,7 +42,7 @@ async function registerAndVerify(app: INestApplication, user: {
     .send({ email: user.email, otp })
     .expect(201);
 
-  const accessToken = verify.body?.tokens?.accessToken as string | undefined;
+  const accessToken = (verify.body?.data?.tokens?.accessToken || verify.body?.tokens?.accessToken) as string | undefined;
   expect(accessToken).toBeDefined();
   return { accessToken: accessToken!, email: user.email };
 }
@@ -57,7 +59,7 @@ async function createPost(app: INestApplication, token: string, suffix: string):
     })
     .expect(201);
 
-  const postId = res.body.id as number;
+  const postId = (res.body?.data?.id || res.body?.id) as number;
   expect(postId).toBeDefined();
   return postId;
 }
@@ -71,7 +73,13 @@ describe('CommentsController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalPipes(new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }));
+    app.useGlobalInterceptors(new ResponseInterceptor());
+    app.useGlobalFilters(new HttpExceptionFilter());
     await app.init();
   });
 
@@ -127,8 +135,8 @@ describe('CommentsController (e2e)', () => {
         .send({ content: `second ${s}` })
         .expect(201);
 
-      const commentId1 = c1.body.id as number;
-      const commentId2 = c2.body.id as number;
+      const commentId1 = (c1.body?.data?.id || c1.body?.id) as number;
+      const commentId2 = (c2.body?.data?.id || c2.body?.id) as number;
       expect(commentId1).toBeDefined();
       expect(commentId2).toBeDefined();
 
@@ -136,25 +144,29 @@ describe('CommentsController (e2e)', () => {
         .get(`/comments/posts/${postId}?page=1&limit=1`)
         .expect(200);
 
-      expect(Array.isArray(page1.body.data)).toBe(true);
-      expect(page1.body.data.length).toBe(1);
-      expect(page1.body.meta).toBeDefined();
-      expect(page1.body.data[0].id).toBe(commentId2);
-      expect(page1.body.data[0].user).toBeDefined();
+      // ResponseInterceptor wraps paginated response: { data: { data: [...], meta: {...} } }
+      const page1Data = page1.body.data;
+      expect(Array.isArray(page1Data.data)).toBe(true);
+      expect(page1Data.data.length).toBe(1);
+      expect(page1Data.meta).toBeDefined();
+      expect(page1Data.data[0].id).toBe(commentId2);
+      expect(page1Data.data[0].user).toBeDefined();
 
       const page2 = await request(app.getHttpServer())
         .get(`/comments/posts/${postId}?page=2&limit=1`)
         .expect(200);
 
-      expect(page2.body.data.length).toBe(1);
-      expect(page2.body.data[0].id).toBe(commentId1);
+      const page2Data = page2.body.data;
+      expect(page2Data.data.length).toBe(1);
+      expect(page2Data.data[0].id).toBe(commentId1);
 
       const all = await request(app.getHttpServer())
         .get(`/comments/posts/${postId}?page=1&limit=10`)
         .expect(200);
 
-      expect(all.body.data.length).toBeGreaterThanOrEqual(2);
-      const ids = all.body.data.map((x: any) => x.id);
+      const allData = all.body.data;
+      expect(allData.data.length).toBeGreaterThanOrEqual(2);
+      const ids = allData.data.map((x: any) => x.id);
       expect(ids.indexOf(commentId2)).toBeLessThan(ids.indexOf(commentId1));
     });
   });
@@ -241,8 +253,9 @@ describe('CommentsController (e2e)', () => {
         .send({ content: `hello ${s}` })
         .expect(201);
 
+      const createdId = created.body?.data?.id || created.body?.id;
       await request(app.getHttpServer())
-        .patch(`/comments/${created.body.id}`)
+        .patch(`/comments/${createdId}`)
         .set('Authorization', `Bearer ${user.accessToken}`)
         .send({ content: '' })
         .expect(400);
@@ -276,7 +289,7 @@ describe('CommentsController (e2e)', () => {
         .send({ content: `owned ${s1}` })
         .expect(201);
 
-      const commentId = created.body.id as number;
+      const commentId = (created.body?.data?.id || created.body?.id) as number;
       expect(commentId).toBeDefined();
 
       await request(app.getHttpServer())
@@ -297,8 +310,9 @@ describe('CommentsController (e2e)', () => {
         .send({ content: `updated ${s1}` })
         .expect(200);
 
-      expect(updated.body.id).toBe(commentId);
-      expect(updated.body.content).toBe(`updated ${s1}`);
+      const updatedData = updated.body?.data || updated.body;
+      expect(updatedData.id).toBe(commentId);
+      expect(updatedData.content).toBe(`updated ${s1}`);
 
       // owner can delete
       await request(app.getHttpServer())
@@ -306,7 +320,8 @@ describe('CommentsController (e2e)', () => {
         .set('Authorization', `Bearer ${owner.accessToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.success).toBe(true);
+          const responseData = res.body?.data || res.body;
+          expect(responseData.success).toBe(true);
         });
 
       // delete/update after deletion -> 404
@@ -326,8 +341,133 @@ describe('CommentsController (e2e)', () => {
         .get(`/comments/posts/${postId}?page=1&limit=10`)
         .expect(200);
 
-      const has = listed.body.data.some((x: any) => x.id === commentId);
+      const listedData = listed.body.data;
+      const has = listedData.data.some((x: any) => x.id === commentId);
       expect(has).toBe(false);
+    });
+  });
+
+  describe('Solution comments with commentsCount tracking', () => {
+    it('increments and decrements commentsCount on solution when creating and deleting comments', async () => {
+      const s = uniqueSuffix();
+      const user = await registerAndVerify(app, {
+        email: `solution-comment-${s}@example.com`,
+        password: 'password123',
+        username: `solution_comment_${s}`,
+        fullName: `Solution Comment ${s}`,
+      });
+
+      // Create an issue
+      const issueRes = await request(app.getHttpServer())
+        .post('/issues')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({
+          content: `Issue for solution comments test with enough content ${s}`,
+          language: 'javascript',
+        })
+        .expect(201);
+
+      const issueId = issueRes.body?.data?.id;
+      expect(issueId).toBeDefined();
+
+      // Create a solution
+      const solutionRes = await request(app.getHttpServer())
+        .post(`/issues/${issueId}/solutions`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({
+          textContent: `Solution content ${s}`,
+        })
+        .expect(201);
+
+      const solutionId = solutionRes.body?.data?.id;
+      expect(solutionId).toBeDefined();
+
+      // Check initial commentsCount
+      const initialSolution = await request(app.getHttpServer())
+        .get(`/issues/${issueId}/solutions`)
+        .expect(200);
+
+      const solutionsData = initialSolution.body.data;
+      const solution = solutionsData.find((s: any) => s.id === solutionId);
+      expect(solution.commentsCount).toBe(0);
+
+      // Create first comment on solution
+      const comment1 = await request(app.getHttpServer())
+        .post(`/comments/solutions/${solutionId}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ content: `First comment ${s}` })
+        .expect(201);
+
+      const commentId1 = comment1.body?.id || comment1.body?.data?.id;
+      expect(commentId1).toBeDefined();
+
+      // Check commentsCount increased
+      const afterFirstComment = await request(app.getHttpServer())
+        .get(`/issues/${issueId}/solutions`)
+        .expect(200);
+
+      const solution1 = afterFirstComment.body.data.find((s: any) => s.id === solutionId);
+      expect(solution1.commentsCount).toBe(1);
+
+      // Create second comment on solution
+      const comment2 = await request(app.getHttpServer())
+        .post(`/comments/solutions/${solutionId}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ content: `Second comment ${s}` })
+        .expect(201);
+
+      const commentId2 = comment2.body?.id || comment2.body?.data?.id;
+      expect(commentId2).toBeDefined();
+
+      // Check commentsCount increased again
+      const afterSecondComment = await request(app.getHttpServer())
+        .get(`/issues/${issueId}/solutions`)
+        .expect(200);
+
+      const solution2 = afterSecondComment.body.data.find((s: any) => s.id === solutionId);
+      expect(solution2.commentsCount).toBe(2);
+
+      // Verify we can list the comments
+      const commentsList = await request(app.getHttpServer())
+        .get(`/comments/solutions/${solutionId}?page=1&limit=10`)
+        .expect(200);
+
+      expect(commentsList.body.data.data.length).toBe(2);
+
+      // Delete first comment
+      await request(app.getHttpServer())
+        .delete(`/comments/${commentId1}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+
+      // Check commentsCount decreased
+      const afterDeleteFirst = await request(app.getHttpServer())
+        .get(`/issues/${issueId}/solutions`)
+        .expect(200);
+
+      const solution3 = afterDeleteFirst.body.data.find((s: any) => s.id === solutionId);
+      expect(solution3.commentsCount).toBe(1);
+
+      // Delete second comment
+      await request(app.getHttpServer())
+        .delete(`/comments/${commentId2}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+
+      // Check commentsCount back to 0
+      const afterDeleteBoth = await request(app.getHttpServer())
+        .get(`/issues/${issueId}/solutions`)
+        .expect(200);
+
+      const solution4 = afterDeleteBoth.body.data.find((s: any) => s.id === solutionId);
+      expect(solution4.commentsCount).toBe(0);
+
+      // Verify deleted comments don't appear in list
+      const commentsListAfterDelete = await request(app.getHttpServer())
+        .get(`/comments/solutions/${solutionId}?page=1&limit=10`)
+        .expect(200);
+
+      expect(commentsListAfterDelete.body.data.data.length).toBe(0);
     });
   });
 });
