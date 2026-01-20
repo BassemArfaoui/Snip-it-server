@@ -5,6 +5,7 @@ import { IssuesService } from '../issues.service';
 import { IssueRepository } from '../repositories/issue.repository';
 import { Issue } from '../entities/issue.entity';
 import { User } from '../../users/entities/user.entity';
+import { ProfileService } from '../../profile/profile.service';
 
 describe('IssuesService', () => {
   let service: IssuesService;
@@ -52,6 +53,10 @@ describe('IssuesService', () => {
     dislikesCount: 0,
   } as Issue;
 
+  const mockProfileService = {
+    calculateAndPersistScore: jest.fn().mockResolvedValue(10),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -63,6 +68,10 @@ describe('IssuesService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: ProfileService,
+          useValue: mockProfileService,
         },
       ],
     }).compile();
@@ -78,6 +87,7 @@ describe('IssuesService', () => {
 
   describe('create', () => {
     it('should create an issue successfully', async () => {
+      mockEntityManager.findOne.mockResolvedValue(mockUser);
       mockEntityManager.create.mockReturnValue(mockIssue);
       mockEntityManager.save.mockResolvedValue(mockIssue);
       mockDataSource.transaction.mockImplementation((callback) =>
@@ -90,15 +100,20 @@ describe('IssuesService', () => {
       );
 
       expect(result).toBeDefined();
+      expect(mockEntityManager.findOne).toHaveBeenCalledWith(User, {
+        where: { id: 1 },
+      });
       expect(mockEntityManager.create).toHaveBeenCalledWith(Issue, {
         content: 'test issue content',
         language: 'javascript',
-        user: { id: 1 },
+        user: mockUser,
       });
       expect(mockEntityManager.save).toHaveBeenCalled();
+      expect(mockProfileService.calculateAndPersistScore).toHaveBeenCalledWith(1);
     });
 
     it('should use transaction for create', async () => {
+      mockEntityManager.findOne.mockResolvedValue(mockUser);
       mockEntityManager.create.mockReturnValue(mockIssue);
       mockEntityManager.save.mockResolvedValue(mockIssue);
 

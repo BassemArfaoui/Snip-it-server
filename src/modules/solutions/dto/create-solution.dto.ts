@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUrl, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsUrl, MinLength, ValidateIf } from 'class-validator';
 
 export class CreateSolutionDto {
   @IsOptional()

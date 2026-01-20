@@ -69,6 +69,9 @@ export class AppModule implements NestModule {
         { path: 'comments/posts/*path', method: RequestMethod.GET },
         { path: 'auth/*path', method: RequestMethod.ALL },
         { path: 'docs/api', method: RequestMethod.ALL },
+        { path: 'issues', method: RequestMethod.GET },
+        { path: 'issues/:id', method: RequestMethod.GET },
+        { path: 'issues/:issueId/solutions', method: RequestMethod.GET },
         // message lel team : add any other public routes here
       )
       .forRoutes('*');

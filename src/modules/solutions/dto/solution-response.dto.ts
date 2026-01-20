@@ -8,7 +8,7 @@ export class SolutionResponseDto {
   contributor: {
     id: number;
     username: string;
-  };
+  } | null;
 
   textContent?: string;
 
@@ -27,10 +27,10 @@ export class SolutionResponseDto {
       id: solution.id,
       issueId: solution.issue.id,
 
-      contributor: {
+      contributor: solution.contributor ? {
         id: solution.contributor.id,
         username: solution.contributor.username,
-      },
+      } : null,
 
       textContent: solution.textContent,
       externalLink: solution.externalLink,

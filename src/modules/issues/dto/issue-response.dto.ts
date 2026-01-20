@@ -12,7 +12,7 @@ export class IssueResponseDto {
   author: {
     id: number;
     username: string;
-  };
+  } | null;
 
   static fromEntity(issue: Issue): IssueResponseDto {
     return {
@@ -24,10 +24,10 @@ export class IssueResponseDto {
       likesCount: issue.likesCount,
       dislikesCount: issue.dislikesCount,
       created_at: issue.createdAt,
-      author: {
+      author: issue.user ? {
         id: issue.user.id,
         username: issue.user.username,
-      },
+      } : null,
     };
   }
 }

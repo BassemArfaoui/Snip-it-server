@@ -26,6 +26,11 @@ export class SolutionsService {
     contributor: User,
     dto: CreateSolutionDto,
   ): Promise<Solution> {
+    // Validate that at least one field is provided
+    if (!dto.textContent && !dto.externalLink) {
+      throw new BadRequestException('Either textContent or externalLink must be provided');
+    }
+
     return this.dataSource.transaction(async (manager) => {
       // Verify issue exists
       const issue = await manager.findOne(Issue, {
@@ -75,13 +80,17 @@ export class SolutionsService {
         1,
       );
 
-      // Recalculate contributor score based on actual data
-      await this.profileService.calculateAndPersistScore(contributor.id);
+      return savedSolution;
+    }).then(async (solution) => {
+      // Recalculate contributor score after transaction completes
+      await this.profileService.calculateAndPersistScore(contributor.id).catch(() => {
+        // Ignore errors in score calculation
+      });
 
       // TODO: Send notification to issue owner
-      // await this.notificationService.notifyNewSolution(issue.user.id, savedSolution);
+      // await this.notificationService.notifyNewSolution(issue.user.id, solution);
 
-      return savedSolution;
+      return solution;
     });
   }
 
@@ -163,9 +172,11 @@ export class SolutionsService {
         'solutionsCount',
         1,
       );
-
-      // Recalculate contributor score based on actual data
-      await this.profileService.calculateAndPersistScore(solution.contributor.id);
+    }).then(async () => {
+      // Recalculate contributor score after transaction completes
+      await this.profileService.calculateAndPersistScore(user.id).catch(() => {
+        // Ignore errors in score calculation
+      });
     });
   }
 
@@ -207,13 +218,17 @@ export class SolutionsService {
         5, // Bonus points for accepted solution
       );
 
-      // Recalculate contributor score based on actual data
-      await this.profileService.calculateAndPersistScore(solution.contributor.id);
+      solution.isAccepted = true;
+      return solution;
+    }).then(async (solution) => {
+      // Recalculate contributor score after transaction completes
+      await this.profileService.calculateAndPersistScore(solution.contributor.id).catch(() => {
+        // Ignore errors in score calculation
+      });
 
       // TODO: Send notification to contributor
       // await this.notificationService.notifySolutionAccepted(solution.contributor.id, solution);
 
-      solution.isAccepted = true;
       return solution;
     });
   }

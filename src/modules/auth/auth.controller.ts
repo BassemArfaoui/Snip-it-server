@@ -61,8 +61,8 @@ export class AuthController {
 
     @Get('github/callback')
     @UseGuards(GitHubAuthGuard)
-    async githubAuthCallback(@Req() req: Request, @Res() res: Response) {
-        const user = req.user as any;
+    async githubAuthCallback(@Req() req: any, @Res() res: Response) {
+        const user = req.user;
         const tokens = await this.authService.generateTokens(user);
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
         res.redirect(`${frontendUrl}/auth-success?accessToken=${tokens.accessToken}&refreshToken=${tokens.refreshToken}`);

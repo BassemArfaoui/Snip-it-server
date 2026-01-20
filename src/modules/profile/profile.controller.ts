@@ -1,7 +1,7 @@
 import { Controller, Get, Param, UseGuards, ForbiddenException, ParseIntPipe, Patch, Body, BadRequestException, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../issues/auth/decorators/current-user.decorator';
+import { CurrentUser } from '../../common/decorator/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 import { UpdatePasswordDto, UpdateProfileDto } from './dto/update-profile.dto';
 

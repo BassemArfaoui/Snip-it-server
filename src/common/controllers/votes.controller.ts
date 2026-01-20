@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { VotingService } from '../services/voting.service';
 import { CreateVoteDto } from '../dto/create-vote.dto';
-import { JwtAuthGuard } from '../../modules/issues/auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../../modules/issues/auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../decorator/current-user.decorator';
 import { User } from '../../modules/users/entities/user.entity';
 
 @Controller('votes')

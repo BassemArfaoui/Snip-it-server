@@ -9,7 +9,7 @@ export class CrudService<T extends ObjectLiteral> {
 
     async create(dto: DeepPartial<T>): Promise<T> {
         const entity = this.repo.create(dto);
-        return this.repo.save(entity);
+        return this.repo.save(entity as DeepPartial<T>) as Promise<T>;
     }
 
     async findAll(options?: FindManyOptions<T>): Promise<T[]> {
@@ -35,7 +35,7 @@ export class CrudService<T extends ObjectLiteral> {
             throw new NotFoundException(`Resource with id ${id} not found`);
         }
 
-        return this.repo.save(entity);
+        return this.repo.save(entity as DeepPartial<T>) as Promise<T>;
     }
 
     async remove(id: number | string): Promise<void> {
