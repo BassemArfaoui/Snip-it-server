@@ -38,34 +38,93 @@ describe('Accept Solution Flow (e2e)', () => {
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
     // Create issue owner
-    const ownerResponse = await request(app.getHttpServer())
-      .post('/auth/signup')
-      .send({
-        username: 'issueowner',
-        email: 'owner@example.com',
-        password: 'password123',
-      });
+    const uniqueTimestamp1 = Date.now();
+    const ownerUser = {
+      username: `issueowner_${uniqueTimestamp1}`,
+      email: `owner_${uniqueTimestamp1}@example.com`,
+      password: 'password123',
+      fullName: 'Issue Owner',
+    };
 
-    issueOwnerToken = ownerResponse.body.data.accessToken;
-    issueOwnerId = ownerResponse.body.data.user.id;
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send(ownerUser)
+      .expect(HttpStatus.CREATED);
+
+    // Manually verify email for testing
+    await dataSource.query(
+      'UPDATE users SET "isEmailVerified" = true WHERE email = $1',
+      [ownerUser.email]
+    );
+
+    // Login to get token
+    const ownerLoginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        identifier: ownerUser.email,
+        password: ownerUser.password,
+      })
+      .expect(HttpStatus.OK);
+
+    issueOwnerToken = ownerLoginResponse.body.data.accessToken;
+
+    // Get userId
+    const ownerResult = await dataSource.query(
+      'SELECT id FROM users WHERE email = $1',
+      [ownerUser.email]
+    );
+    issueOwnerId = ownerResult[0].id;
 
     // Create contributor
-    const contributorResponse = await request(app.getHttpServer())
-      .post('/auth/signup')
-      .send({
-        username: 'contributor',
-        email: 'contributor@example.com',
-        password: 'password123',
-      });
+    const uniqueTimestamp2 = Date.now() + 1;
+    const contributorUser = {
+      username: `contributor_${uniqueTimestamp2}`,
+      email: `contributor_${uniqueTimestamp2}@example.com`,
+      password: 'password123',
+      fullName: 'Contributor User',
+    };
 
-    contributorToken = contributorResponse.body.data.accessToken;
-    contributorId = contributorResponse.body.data.user.id;
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send(contributorUser)
+      .expect(HttpStatus.CREATED);
+
+    // Manually verify email for testing
+    await dataSource.query(
+      'UPDATE users SET "isEmailVerified" = true WHERE email = $1',
+      [contributorUser.email]
+    );
+
+    // Login to get token
+    const contributorLoginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        identifier: contributorUser.email,
+        password: contributorUser.password,
+      })
+      .expect(HttpStatus.OK);
+
+    contributorToken = contributorLoginResponse.body.data.accessToken;
+
+    // Get userId
+    const contributorResult = await dataSource.query(
+      'SELECT id FROM users WHERE email = $1',
+      [contributorUser.email]
+    );
+    contributorId = contributorResult[0].id;
   });
 
   afterAll(async () => {
-    if (dataSource) {
-      await dataSource.query('DELETE FROM solutions WHERE issue_id = $1', [issueId]);
+    if (dataSource && issueId) {
+      // Delete in proper order to avoid foreign key constraints
+      await dataSource.query('DELETE FROM solutions WHERE "issueId" = $1', [issueId]);
       await dataSource.query('DELETE FROM issues WHERE id = $1', [issueId]);
+    }
+    if (dataSource && issueOwnerId && contributorId) {
+      await dataSource.query('DELETE FROM "email_verifications" WHERE "userId" IN ($1, $2)', [
+        issueOwnerId,
+        contributorId,
+      ]);
       await dataSource.query('DELETE FROM users WHERE id IN ($1, $2)', [
         issueOwnerId,
         contributorId,
@@ -157,23 +216,14 @@ describe('Accept Solution Flow (e2e)', () => {
       // );
       // expect(contributorData[0].reputation).toBeGreaterThan(0);
 
-      // Step 8: Attempt to accept another solution should fail (already resolved)
-      const anotherSolutionResponse = await request(app.getHttpServer())
+      // Step 8: Attempt to create solution on resolved issue should fail
+      await request(app.getHttpServer())
         .post(`/issues/${issueId}/solutions`)
         .set('Authorization', `Bearer ${contributorToken}`)
         .send({
           textContent: 'Another solution',
-        });
-
-      const anotherSolutionId = anotherSolutionResponse.body.data.id;
-
-      await request(app.getHttpServer())
-        .patch(`/solutions/${anotherSolutionId}/accept`)
-        .set('Authorization', `Bearer ${issueOwnerToken}`)
+        })
         .expect(HttpStatus.BAD_REQUEST);
-
-      // Cleanup the extra solution
-      await dataSource.query('DELETE FROM solutions WHERE id = $1', [anotherSolutionId]);
     });
 
     it('should handle transaction rollback on failure', async () => {
@@ -206,16 +256,16 @@ describe('Accept Solution Flow (e2e)', () => {
 
       // Verify all related data is updated atomically
       const [issue] = await dataSource.query(
-        'SELECT is_resolved FROM issues WHERE id = $1',
+        'SELECT "isResolved" FROM issues WHERE id = $1',
         [testIssueId],
       );
       const [solution] = await dataSource.query(
-        'SELECT is_accepted FROM solutions WHERE id = $1',
+        'SELECT "isAccepted" FROM solutions WHERE id = $1',
         [testSolutionId],
       );
 
-      expect(issue.is_resolved).toBe(true);
-      expect(solution.is_accepted).toBe(true);
+      expect(issue.isResolved).toBe(true);
+      expect(solution.isAccepted).toBe(true);
 
       // Cleanup
       await dataSource.query('DELETE FROM solutions WHERE id = $1', [testSolutionId]);
@@ -271,7 +321,7 @@ describe('Accept Solution Flow (e2e)', () => {
       expect(issueAfterDeleteResponse.body.data.solutions_count).toBe(2);
 
       // Cleanup
-      await dataSource.query('DELETE FROM solutions WHERE issue_id = $1', [testIssueId]);
+      await dataSource.query('DELETE FROM solutions WHERE "issueId" = $1', [testIssueId]);
       await dataSource.query('DELETE FROM issues WHERE id = $1', [testIssueId]);
     });
   });

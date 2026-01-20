@@ -10,6 +10,7 @@ import { SolutionRepository } from '../repositories/solution.repository';
 import { Solution } from '../entities/solution.entity';
 import { Issue } from '../../issues/entities/issue.entity';
 import { User } from '../../users/entities/user.entity';
+import { ProfileService } from '../../profile/profile.service';
 
 describe('SolutionsService', () => {
   let service: SolutionsService;
@@ -40,6 +41,10 @@ describe('SolutionsService', () => {
     decrement: jest.fn(),
   };
 
+  const mockProfileService = {
+    calculateAndPersistScore: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,6 +56,10 @@ describe('SolutionsService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: ProfileService,
+          useValue: mockProfileService,
         },
       ],
     }).compile();

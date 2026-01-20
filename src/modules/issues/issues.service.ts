@@ -24,26 +24,31 @@ export class IssuesService {
     // Create issue with user relation loaded
     const issue = await this.dataSource.transaction(async (manager) => {
       // Create issue with user relation
-      const user = await manager.findOne(User, { where: { id: userId } });
-      if (!user) throw new NotFoundException('User not found');
+    const user = await manager.findOne(User, { where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
 
-      const newIssue = manager.create(Issue, {
-        content: dto.content,
-        language: dto.language,
-        user: user,
+    const newIssue = manager.create(Issue, {
+      content: dto.content,
+      language: dto.language,
+      user: user,
+    });
+
+    const savedIssue = await manager.save(newIssue); 
+
+    return savedIssue;
+    }).then(async (savedIssue) => {
+      // Recalculate contributor score after transaction completes
+      await this.profileService.calculateAndPersistScore(userId).catch(() => {
+        // Ignore errors in score calculation
       });
-
-      const savedIssue = await manager.save(issue);
-
-      // Recalculate contributor score for the user (simple formula)
-      await this.profileService.calculateAndPersistScore(userId);
-
       return savedIssue;
     });
 
     // Return the created issue with user relation already loaded
     return IssueResponseDto.fromEntity(issue);
   }
+
+
 
   async findAll(query: {
     language?: string;

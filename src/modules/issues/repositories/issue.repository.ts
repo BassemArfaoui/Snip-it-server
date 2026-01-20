@@ -41,7 +41,14 @@ export class IssueRepository {
   }
 
   async updateIssue(issueId: number, data: Partial<Issue>): Promise<Issue | null> {
-    await this.repo.update({ id: issueId }, data);
+
+    const updateData = Object.fromEntries(
+      Object.entries(data).filter(([_, value]) => value !== undefined)
+    );
+
+    if (Object.keys(updateData).length > 0) {
+      await this.repo.update({ id: issueId }, updateData);
+    }
     return this.findById(issueId);
   }
 

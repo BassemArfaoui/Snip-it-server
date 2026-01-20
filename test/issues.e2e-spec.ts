@@ -79,6 +79,7 @@ describe('Issues (e2e)', () => {
     // Clean up test data
     if (dataSource) {
       await dataSource.query('DELETE FROM issues WHERE "userId" = $1', [userId]);
+      await dataSource.query('DELETE FROM "email_verifications" WHERE "userId" = $1', [userId]);
       await dataSource.query('DELETE FROM users WHERE id = $1', [userId]);
     }
     await app.close();

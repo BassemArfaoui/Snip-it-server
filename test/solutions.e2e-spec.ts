@@ -36,18 +36,42 @@ describe('Solutions (e2e)', () => {
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
     // Create test user and get auth token
+    const uniqueTimestamp = Date.now();
     const testUser = {
-      username: 'solutionuser',
-      email: 'solution@example.com',
+      username: `solutionuser_${uniqueTimestamp}`,
+      email: `solution_${uniqueTimestamp}@example.com`,
       password: 'password123',
+      fullName: 'Solution User',
     };
 
-    const signupResponse = await request(app.getHttpServer())
-      .post('/auth/signup')
-      .send(testUser);
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send(testUser)
+      .expect(HttpStatus.CREATED);
 
-    authToken = signupResponse.body.data.accessToken;
-    userId = signupResponse.body.data.user.id;
+    // Manually verify email for testing
+    await dataSource.query(
+      'UPDATE users SET "isEmailVerified" = true WHERE email = $1',
+      [testUser.email]
+    );
+
+    // Login to get token
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        identifier: testUser.email,
+        password: testUser.password,
+      })
+      .expect(HttpStatus.OK);
+
+    authToken = loginResponse.body.data.accessToken;
+
+    // Get userId
+    const userResult = await dataSource.query(
+      'SELECT id FROM users WHERE email = $1',
+      [testUser.email]
+    );
+    userId = userResult[0].id;
 
     // Create a test issue
     const issueResponse = await request(app.getHttpServer())
@@ -62,9 +86,12 @@ describe('Solutions (e2e)', () => {
   });
 
   afterAll(async () => {
-    if (dataSource) {
-      await dataSource.query('DELETE FROM solutions WHERE issue_id = $1', [issueId]);
+    if (dataSource && issueId) {
+      await dataSource.query('DELETE FROM solutions WHERE "issueId" = $1', [issueId]);
       await dataSource.query('DELETE FROM issues WHERE id = $1', [issueId]);
+    }
+    if (dataSource && userId) {
+      await dataSource.query('DELETE FROM "email_verifications" WHERE "userId" = $1', [userId]);
       await dataSource.query('DELETE FROM users WHERE id = $1', [userId]);
     }
     await app.close();
@@ -209,18 +236,42 @@ describe('Solutions (e2e)', () => {
 
     it('should fail if not issue owner', async () => {
       // Create another user
+      const uniqueTimestamp2 = Date.now() + 100;
       const anotherUser = {
-        username: 'anotheruser',
-        email: 'another@example.com',
+        username: `anotheruser_${uniqueTimestamp2}`,
+        email: `another_${uniqueTimestamp2}@example.com`,
         password: 'password123',
+        fullName: 'Another User',
       };
 
-      const signupResponse = await request(app.getHttpServer())
-        .post('/auth/signup')
-        .send(anotherUser);
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send(anotherUser)
+        .expect(HttpStatus.CREATED);
 
-      const anotherToken = signupResponse.body.data.accessToken;
-      const anotherUserId = signupResponse.body.data.user.id;
+      // Verify email
+      await dataSource.query(
+        'UPDATE users SET "isEmailVerified" = true WHERE email = $1',
+        [anotherUser.email]
+      );
+
+      // Login
+      const loginResponse = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({
+          identifier: anotherUser.email,
+          password: anotherUser.password,
+        })
+        .expect(HttpStatus.OK);
+
+      const anotherToken = loginResponse.body.data.accessToken;
+
+      // Get userId
+      const anotherUserResult = await dataSource.query(
+        'SELECT id FROM users WHERE email = $1',
+        [anotherUser.email]
+      );
+      const anotherUserId = anotherUserResult[0].id;
 
       const response = await request(app.getHttpServer())
         .patch(`/solutions/${solutionId}/accept`)
@@ -234,6 +285,7 @@ describe('Solutions (e2e)', () => {
       });
 
       // Cleanup
+      await dataSource.query('DELETE FROM "email_verifications" WHERE "userId" = $1', [anotherUserId]);
       await dataSource.query('DELETE FROM users WHERE id = $1', [anotherUserId]);
     });
 
@@ -246,11 +298,23 @@ describe('Solutions (e2e)', () => {
 
   describe('DELETE /solutions/:id', () => {
     it('should delete own solution', async () => {
-      // Create a new solution to delete
-      const createResponse = await request(app.getHttpServer())
-        .post(`/issues/${issueId}/solutions`)
+      // Create a new issue since the previous one is resolved
+      const newIssueResponse = await request(app.getHttpServer())
+        .post('/issues')
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ textContent: 'Solution to be deleted' });
+        .send({
+          content: 'New issue for delete test with enough content',
+          language: 'python',
+        });
+
+      const newIssueId = newIssueResponse.body.data.id;
+
+      // Create a solution to delete
+      const createResponse = await request(app.getHttpServer())
+        .post(`/issues/${newIssueId}/solutions`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ textContent: 'Solution to be deleted' })
+        .expect(HttpStatus.CREATED);
 
       const toDeleteId = createResponse.body.data.id;
 
@@ -258,6 +322,10 @@ describe('Solutions (e2e)', () => {
         .delete(`/solutions/${toDeleteId}`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(HttpStatus.NO_CONTENT);
+
+      // Cleanup - delete remaining solutions then the issue
+      await dataSource.query('DELETE FROM solutions WHERE "issueId" = $1', [newIssueId]);
+      await dataSource.query('DELETE FROM issues WHERE id = $1', [newIssueId]);
     });
 
     it('should fail without authentication', async () => {
