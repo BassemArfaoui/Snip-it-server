@@ -64,6 +64,9 @@ export class CollectionsService {
             .leftJoinAndSelect('c.tags', 'tags')
             .where('c.userId = :userId', { userId: authUser.userId });
 
+        // Add relation count for items to include itemCount in each collection
+        qb.loadRelationCountAndMap('c.itemCount', 'c.items');
+
         if (opts.q) {
             qb.andWhere('c.name ILIKE :q', { q: `%${opts.q}%` });
         }
@@ -284,6 +287,37 @@ export class CollectionsService {
         return this.itemRepo.save(item);
     }
 
+    async togglePinned(
+        authUser: AuthUser,
+        collectionId: number,
+        targetId: number,
+        targetType: CollectionItemEnum,
+        value: boolean,
+    ) {
+        const collection = await this.collectionRepo.findOne({
+            where: { id: collectionId },
+            relations: ['user', 'items', 'collaborators', 'collaborators.user'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found');
+
+        // Check permissions
+        const userPermission = collection.user.id === Number(authUser.userId) 
+            ? CollectionPermission.ADMIN 
+            : collection.collaborators?.find(c => c.user.id === Number(authUser.userId))?.permission;
+
+        if (!userPermission) throw new ForbiddenException('You do not have access to this collection');
+        if (userPermission === CollectionPermission.VIEW) throw new ForbiddenException('You do not have permission to modify this collection');
+
+        const item = collection.items.find(
+            i => i.targetId === targetId && i.targetType === targetType,
+        );
+        if (!item) throw new NotFoundException('Item not found');
+
+        item.isPinned = value;
+        return this.itemRepo.save(item);
+    }
+
     async listItems(
         authUser: AuthUser,
         collectionId: number,
@@ -314,14 +348,39 @@ export class CollectionsService {
             qb = qb.andWhere('ci.targetType = :type', { type: opts.type });
         }
 
-        if (opts.q) {
-            // This would require joining with the respective entities and searching their properties
-            // For now, a basic implementation
+        // Join with target entities for filtering by name/language
+        if (opts.q || opts.language) {
+            // Use string-based join with proper ON conditions
+            qb = qb
+                .leftJoin('posts', 'post', "ci.targetType = 'POST' AND ci.targetId = post.id")
+                .leftJoin('issues', 'issue', "ci.targetType = 'ISSUE' AND ci.targetId = issue.id")
+                .leftJoin('solutions', 'solution', "ci.targetType = 'SOLUTION' AND ci.targetId = solution.id")
+                .leftJoin('private_snippets', 'private_snippet', "ci.targetType = 'PRIVATE_SNIPPET' AND ci.targetId = private_snippet.id")
+                .leftJoin('snippets', 'snippet', 'private_snippet.snippetId = snippet.id');
+
+            if (opts.q) {
+                qb = qb.andWhere(
+                    '("post"."title" ILIKE :q OR "issue"."content" ILIKE :q OR "solution"."textContent" ILIKE :q OR "snippet"."title" ILIKE :q)',
+                    { q: `%${opts.q}%` }
+                );
+            }
+
+            if (opts.language) {
+                // Only filter items that have language (POST, ISSUE, and PRIVATE_SNIPPET)
+                qb = qb.andWhere(
+                    '((ci.targetType = :postType AND "post"."language" = :lang) OR (ci.targetType = :issueType AND "issue"."language" = :lang) OR (ci.targetType = :snippetType AND "snippet"."language" = :lang))',
+                    { postType: CollectionItemEnum.POST, issueType: CollectionItemEnum.ISSUE, snippetType: CollectionItemEnum.PRIVATE_SNIPPET, lang: opts.language }
+                );
+            }
         }
 
         if (opts.sort) {
             const [field, direction] = opts.sort.split(':');
             if (['isPinned', 'isFavorite', 'createdAt'].includes(field)) {
+                // If sorting by isPinned or isFavorite, only show items where they are true
+                if (field === 'isPinned' || field === 'isFavorite') {
+                    qb = qb.andWhere(`ci.${field} = :${field}`, { [field]: true });
+                }
                 qb = qb.orderBy(`ci.${field}`, direction.toUpperCase() as 'ASC' | 'DESC');
             }
         }
@@ -334,10 +393,10 @@ export class CollectionsService {
         return { items, total, page, size };
     }
 
-    async getCollectionByToken(token: string) {
+    async getCollectionByToken(token: string, authUser?: AuthUser) {
         const collection = await this.collectionRepo.findOne({
-            where: { shareToken: token, isPublic: true },
-            relations: ['user', 'items'],
+            where: { shareToken: token },
+            relations: ['user', 'items', 'collaborators', 'collaborators.user'],
         });
 
         if (!collection) throw new NotFoundException('Collection not found or link has been revoked');
@@ -347,10 +406,31 @@ export class CollectionsService {
             throw new ForbiddenException('This share link has expired');
         }
 
+        let effectivePermission = collection.shareLinkPermission || CollectionPermission.VIEW;
+        let accessType = 'share-link';
+
+        // If user is authenticated, check if they're owner or collaborator
+        if (authUser) {
+            const isOwner = collection.user.id === Number(authUser.userId);
+            if (isOwner) {
+                effectivePermission = CollectionPermission.ADMIN;
+                accessType = 'owner';
+            } else {
+                const collaborator = collection.collaborators?.find(
+                    c => c.user.id === Number(authUser.userId)
+                );
+                if (collaborator) {
+                    effectivePermission = collaborator.permission;
+                    accessType = 'collaborator';
+                }
+            }
+        }
+
         const { user: _, ...result } = collection;
         return {
             ...result,
-            linkPermission: collection.shareLinkPermission || CollectionPermission.VIEW,
+            linkPermission: effectivePermission,
+            accessType,
         };
     }
 
@@ -364,7 +444,7 @@ export class CollectionsService {
         if (!collection) throw new NotFoundException('Collection not found');
         if (collection.user.id !== Number(authUser.userId)) throw new NotFoundException('Collection not found');
 
-        const tag = await this.tagRepo.findOne({ where: { id: tagId } });
+        const tag = await this.tagRepo.findOne({ where: { id: tagId }, relations: ['user'] });
         if (!tag) throw new NotFoundException('Tag not found');
         if (tag.user.id !== Number(authUser.userId)) throw new BadRequestException('You can only assign your own tags');
 
@@ -423,7 +503,6 @@ export class CollectionsService {
 
         // Generate new share token
         collection.shareToken = crypto.randomBytes(32).toString('hex');
-        collection.isPublic = true;
         collection.shareLinkPermission = permission;
 
         // Set expiration if provided

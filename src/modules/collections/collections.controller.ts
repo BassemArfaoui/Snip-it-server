@@ -83,6 +83,12 @@ export class CollectionsController {
         return this.service.toggleFavorite(user, id, body.targetId, body.targetType as any, body.value);
     }
 
+    @Post(':id/items/pin')
+    togglePin(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Body() body: { targetId: number, targetType: string, value: boolean }) {
+        const user = req['user'] as AuthUser;
+        return this.service.togglePinned(user, id, body.targetId, body.targetType as any, body.value);
+    }
+
     @Get(':id/items')
     listItems(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Query() query: any) {
         const user = req['user'] as AuthUser;
@@ -98,8 +104,9 @@ export class CollectionsController {
     }
 
     @Get('share/token/:token')
-    getByToken(@Param('token') token: string) {
-        return this.service.getCollectionByToken(token);
+    getByToken(@Req() req: Request, @Param('token') token: string) {
+        const user = req['user'] as AuthUser | undefined;
+        return this.service.getCollectionByToken(token, user);
     }
 
     // Tag Assignment Endpoints

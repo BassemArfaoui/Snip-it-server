@@ -20,6 +20,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DocsModule } from './docs/docs.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { SuggestedPostsModule } from './modules/suggested-posts/suggested-posts.module';
+import { TagsModule } from './modules/tags/tags.module';
 import { User } from './modules/users/entities/user.entity';
 
 @Module({
@@ -54,6 +55,7 @@ import { User } from './modules/users/entities/user.entity';
     ProfileModule,
     DocsModule,
     SuggestedPostsModule,
+    TagsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
