@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UsePipes, ValidationPipe, Param, Get, Put, Delete, Query, ParseIntPipe, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Req, UsePipes, ValidationPipe, Param, Get, Put, Delete, Query, ParseIntPipe, Patch, DefaultValuePipe } from '@nestjs/common';
 import { CollectionsService } from './collections.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
 import { UpdateCollectionDto } from './dto/update-collection.dto';
@@ -107,6 +107,31 @@ export class CollectionsController {
     getByToken(@Req() req: Request, @Param('token') token: string) {
         const user = req['user'] as AuthUser | undefined;
         return this.service.getCollectionByToken(token, user);
+    }
+
+    @Get('share/token/:token/items')
+    getItemsByToken(
+        @Param('token') token: string,
+        @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+        @Query('size', new DefaultValuePipe(20), ParseIntPipe) size: number,
+        @Query('type') type?: string,
+        @Query('language') language?: string,
+        @Query('q') query?: string,
+        @Query('sort') sort?: string,
+    ) {
+        return this.service.getCollectionItemsByToken(token, {
+            page,
+            size,
+            type: type as any,
+            language,
+            q: query,
+            sort,
+        });
+    }
+
+    @Get('share/token/:token/tags')
+    getTagsByToken(@Param('token') token: string) {
+        return this.service.getCollectionTagsByToken(token);
     }
 
     // Tag Assignment Endpoints

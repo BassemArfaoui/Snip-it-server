@@ -121,8 +121,14 @@ export class CollectionsService {
         if (payload.name !== undefined) collection.name = payload.name;
         if (payload.isPublic !== undefined) {
             collection.isPublic = payload.isPublic;
-            if (payload.isPublic && !collection.shareToken) {
-                collection.shareToken = crypto.randomBytes(16).toString('hex');
+            if (payload.isPublic) {
+                // Generate a new share token when making public and none exists
+                if (!collection.shareToken) {
+                    collection.shareToken = crypto.randomBytes(16).toString('hex');
+                }
+            } else {
+                // When making private, only clear permission (keep token to distinguish from revoke)
+                collection.shareLinkPermission = undefined;
             }
         }
         if (payload.allowEdit !== undefined) collection.allowEdit = payload.allowEdit;
@@ -401,12 +407,27 @@ export class CollectionsService {
 
         if (!collection) throw new NotFoundException('Collection not found or link has been revoked');
 
+        // Check if collection is private (token exists but isPublic is false)
+        if (collection.shareToken && !collection.isPublic) {
+            throw new ForbiddenException('This collection is no longer shared (it is now private)');
+        }
+
+        // Check if shareToken is valid (not revoked)
+        if (!collection.shareToken) {
+            throw new NotFoundException('Collection not found or link has been revoked');
+        }
+
         // Check if link has expired
         if (collection.shareTokenExpiresAt && collection.shareTokenExpiresAt < new Date()) {
             throw new ForbiddenException('This share link has expired');
         }
 
-        let effectivePermission = collection.shareLinkPermission || CollectionPermission.VIEW;
+        // Check if shareLinkPermission is set (if not set, link was revoked)
+        if (!collection.shareLinkPermission) {
+            throw new ForbiddenException('This share link has been revoked');
+        }
+
+        let effectivePermission = collection.shareLinkPermission;
         let accessType = 'share-link';
 
         // If user is authenticated, check if they're owner or collaborator
@@ -432,6 +453,105 @@ export class CollectionsService {
             linkPermission: effectivePermission,
             accessType,
         };
+    }
+
+    async getCollectionItemsByToken(
+        token: string,
+        opts: { page?: number; size?: number; type?: CollectionItemEnum; language?: string; q?: string; sort?: string } = {},
+    ) {
+        const page = opts.page ?? 1;
+        const size = Math.min(opts.size ?? 20, 100);
+
+        const collection = await this.collectionRepo.findOne({
+            where: { shareToken: token },
+            relations: ['user'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found or link has been revoked');
+
+        // Check if collection is private
+        if (collection.shareToken && !collection.isPublic) {
+            throw new ForbiddenException('This collection is no longer shared (it is now private)');
+        }
+
+        // Validate share token
+        if (!collection.shareToken) throw new NotFoundException('Collection not found or link has been revoked');
+        if (!collection.shareLinkPermission) throw new ForbiddenException('This share link has been revoked');
+        if (collection.shareTokenExpiresAt && collection.shareTokenExpiresAt < new Date()) {
+            throw new ForbiddenException('This share link has expired');
+        }
+
+        let qb = this.itemRepo.createQueryBuilder('ci').where('ci.collectionId = :collectionId', {
+            collectionId: collection.id,
+        });
+
+        if (opts.type) {
+            qb = qb.andWhere('ci.targetType = :type', { type: opts.type });
+        }
+
+        // Join with target entities for filtering by name/language
+        if (opts.q || opts.language) {
+            qb = qb
+                .leftJoin('posts', 'post', "ci.targetType = 'POST' AND ci.targetId = post.id")
+                .leftJoin('issues', 'issue', "ci.targetType = 'ISSUE' AND ci.targetId = issue.id")
+                .leftJoin('solutions', 'solution', "ci.targetType = 'SOLUTION' AND ci.targetId = solution.id")
+                .leftJoin('private_snippets', 'private_snippet', "ci.targetType = 'PRIVATE_SNIPPET' AND ci.targetId = private_snippet.id")
+                .leftJoin('snippets', 'snippet', 'private_snippet.snippetId = snippet.id');
+
+            if (opts.q) {
+                qb = qb.andWhere(
+                    '("post"."title" ILIKE :q OR "issue"."content" ILIKE :q OR "solution"."textContent" ILIKE :q OR "snippet"."title" ILIKE :q)',
+                    { q: `%${opts.q}%` }
+                );
+            }
+
+            if (opts.language) {
+                qb = qb.andWhere(
+                    '((ci.targetType = :postType AND "post"."language" = :lang) OR (ci.targetType = :issueType AND "issue"."language" = :lang) OR (ci.targetType = :snippetType AND "snippet"."language" = :lang))',
+                    { postType: CollectionItemEnum.POST, issueType: CollectionItemEnum.ISSUE, snippetType: CollectionItemEnum.PRIVATE_SNIPPET, lang: opts.language }
+                );
+            }
+        }
+
+        if (opts.sort) {
+            const [field, direction] = opts.sort.split(':');
+            if (['isPinned', 'isFavorite', 'createdAt'].includes(field)) {
+                if (field === 'isPinned' || field === 'isFavorite') {
+                    qb = qb.andWhere(`ci.${field} = :${field}`, { [field]: true });
+                }
+                qb = qb.orderBy(`ci.${field}`, direction.toUpperCase() as 'ASC' | 'DESC');
+            }
+        }
+
+        const [items, total] = await qb
+            .skip((page - 1) * size)
+            .take(size)
+            .getManyAndCount();
+
+        return { items, total, page, size };
+    }
+
+    async getCollectionTagsByToken(token: string) {
+        const collection = await this.collectionRepo.findOne({
+            where: { shareToken: token },
+            relations: ['tags'],
+        });
+
+        if (!collection) throw new NotFoundException('Collection not found or link has been revoked');
+
+        // Check if collection is private
+        if (collection.shareToken && !collection.isPublic) {
+            throw new ForbiddenException('This collection is no longer shared (it is now private)');
+        }
+
+        // Validate share token
+        if (!collection.shareToken) throw new NotFoundException('Collection not found or link has been revoked');
+        if (!collection.shareLinkPermission) throw new ForbiddenException('This share link has been revoked');
+        if (collection.shareTokenExpiresAt && collection.shareTokenExpiresAt < new Date()) {
+            throw new ForbiddenException('This share link has expired');
+        }
+
+        return collection.tags || [];
     }
 
     // Tag Assignment Methods
