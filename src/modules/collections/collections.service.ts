@@ -346,38 +346,53 @@ export class CollectionsService {
 
         if (!userPermission) throw new ForbiddenException('You do not have access to this collection');
 
-        let qb = this.itemRepo.createQueryBuilder('ci').where('ci.collectionId = :collectionId', {
-            collectionId,
-        });
+        let qb = this.itemRepo.createQueryBuilder('ci')
+            .select('ci.id', 'id')
+            .addSelect('ci.targetId', 'targetId')
+            .addSelect('ci.targetType', 'targetType')
+            .addSelect('ci.isPinned', 'isPinned')
+            .addSelect('ci.isFavorite', 'isFavorite')
+            .addSelect('ci.createdAt', 'createdAt')
+            .addSelect('ci.updatedAt', 'updatedAt')
+            .addSelect('post.id', 'post_id')
+            .addSelect('post.title', 'post_title')
+            .addSelect('post.language', 'post_language')
+            .addSelect('post.description', 'post_description')
+            .addSelect('issue.id', 'issue_id')
+            .addSelect('issue.content', 'issue_content')
+            .addSelect('issue.language', 'issue_language')
+            .addSelect('solution.id', 'solution_id')
+            .addSelect('solution.textContent', 'solution_textContent')
+            .addSelect('snippet.id', 'snippet_id')
+            .addSelect('snippet.title', 'snippet_title')
+            .addSelect('snippet.language', 'snippet_language')
+            .where('ci.collectionId = :collectionId', { collectionId });
+
+        // Always join with target entities to retrieve their data
+        qb = qb
+            .leftJoin('posts', 'post', "ci.targetType = 'POST' AND ci.targetId = post.id")
+            .leftJoin('issues', 'issue', "ci.targetType = 'ISSUE' AND ci.targetId = issue.id")
+            .leftJoin('solutions', 'solution', "ci.targetType = 'SOLUTION' AND ci.targetId = solution.id")
+            .leftJoin('private_snippets', 'private_snippet', "ci.targetType = 'PRIVATE_SNIPPET' AND ci.targetId = private_snippet.id")
+            .leftJoin('snippets', 'snippet', 'private_snippet.snippetId = snippet.id');
 
         if (opts.type) {
             qb = qb.andWhere('ci.targetType = :type', { type: opts.type });
         }
 
-        // Join with target entities for filtering by name/language
-        if (opts.q || opts.language) {
-            // Use string-based join with proper ON conditions
-            qb = qb
-                .leftJoin('posts', 'post', "ci.targetType = 'POST' AND ci.targetId = post.id")
-                .leftJoin('issues', 'issue', "ci.targetType = 'ISSUE' AND ci.targetId = issue.id")
-                .leftJoin('solutions', 'solution', "ci.targetType = 'SOLUTION' AND ci.targetId = solution.id")
-                .leftJoin('private_snippets', 'private_snippet', "ci.targetType = 'PRIVATE_SNIPPET' AND ci.targetId = private_snippet.id")
-                .leftJoin('snippets', 'snippet', 'private_snippet.snippetId = snippet.id');
+        if (opts.q) {
+            qb = qb.andWhere(
+                '("post"."title" ILIKE :q OR "issue"."content" ILIKE :q OR "solution"."textContent" ILIKE :q OR "snippet"."title" ILIKE :q)',
+                { q: `%${opts.q}%` }
+            );
+        }
 
-            if (opts.q) {
-                qb = qb.andWhere(
-                    '("post"."title" ILIKE :q OR "issue"."content" ILIKE :q OR "solution"."textContent" ILIKE :q OR "snippet"."title" ILIKE :q)',
-                    { q: `%${opts.q}%` }
-                );
-            }
-
-            if (opts.language) {
-                // Only filter items that have language (POST, ISSUE, and PRIVATE_SNIPPET)
-                qb = qb.andWhere(
-                    '((ci.targetType = :postType AND "post"."language" = :lang) OR (ci.targetType = :issueType AND "issue"."language" = :lang) OR (ci.targetType = :snippetType AND "snippet"."language" = :lang))',
-                    { postType: CollectionItemEnum.POST, issueType: CollectionItemEnum.ISSUE, snippetType: CollectionItemEnum.PRIVATE_SNIPPET, lang: opts.language }
-                );
-            }
+        if (opts.language) {
+            // Only filter items that have language (POST, ISSUE, and PRIVATE_SNIPPET)
+            qb = qb.andWhere(
+                '((ci.targetType = :postType AND "post"."language" = :lang) OR (ci.targetType = :issueType AND "issue"."language" = :lang) OR (ci.targetType = :snippetType AND "snippet"."language" = :lang))',
+                { postType: CollectionItemEnum.POST, issueType: CollectionItemEnum.ISSUE, snippetType: CollectionItemEnum.PRIVATE_SNIPPET, lang: opts.language }
+            );
         }
 
         if (opts.sort) {
@@ -391,10 +406,52 @@ export class CollectionsService {
             }
         }
 
-        const [items, total] = await qb
-            .skip((page - 1) * size)
-            .take(size)
-            .getManyAndCount();
+        // Get total count first
+        const total = await qb.getCount();
+
+        // Get paginated raw results
+        const rawItems = await qb
+            .offset((page - 1) * size)
+            .limit(size)
+            .getRawMany();
+
+        // Transform items to include target entity details
+        const items = rawItems.map((item: any) => {
+            const result: any = {
+                id: item.id,
+                targetId: item.targetId,
+                targetType: item.targetType,
+                isPinned: item.isPinned,
+                isFavorite: item.isFavorite,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt,
+            };
+
+            // Add target entity details based on type
+            if (item.targetType === CollectionItemEnum.POST && item.post_id) {
+                result.target = {
+                    title: item.post_title,
+                    language: item.post_language,
+                    description: item.post_description,
+                };
+            } else if (item.targetType === CollectionItemEnum.ISSUE && item.issue_id) {
+                result.target = {
+                    content: item.issue_content,
+                    language: item.issue_language,
+                };
+            } else if (item.targetType === CollectionItemEnum.SOLUTION && item.solution_id) {
+                result.target = {
+                    content: item.solution_textContent,
+                };
+            } else if (item.targetType === CollectionItemEnum.PRIVATE_SNIPPET && item.snippet_id) {
+                result.target = {
+                    title: item.snippet_title,
+                    language: item.snippet_language,
+                };
+            }
+
+            return result;
+        });
 
         return { items, total, page, size };
     }
