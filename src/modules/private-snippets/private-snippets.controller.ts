@@ -36,6 +36,12 @@ export class PrivateSnippetsController {
         });
     }
 
+    @Get(':id')
+    getById(@Req() req: Request, @Param('id', ParseIntPipe) id: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.getSnippetById(user, id);
+    }
+
     @Put(':id')
     @UsePipes(new ValidationPipe({ whitelist: true }))
     update(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePrivateSnippetDto) {
@@ -68,6 +74,12 @@ export class PrivateSnippetsController {
     deleteVersion(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Param('versionId', ParseIntPipe) versionId: number) {
         const user = req['user'] as AuthUser;
         return this.service.deleteVersion(user, id, versionId);
+    }
+
+    @Post(':id/versions/:versionId/restore')
+    restoreVersion(@Req() req: Request, @Param('id', ParseIntPipe) id: number, @Param('versionId', ParseIntPipe) versionId: number) {
+        const user = req['user'] as AuthUser;
+        return this.service.restoreVersion(user, id, versionId);
     }
 
     // Tag Assignment Endpoints

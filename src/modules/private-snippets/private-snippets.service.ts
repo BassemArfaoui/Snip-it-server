@@ -113,6 +113,93 @@ export class PrivateSnippetsService {
         return { items: sanitizedItems, total, page, size };
     }
 
+    async getSnippetById(authUser: AuthUser, id: number) {
+        const ps = await this.privateSnippetRepo.findOne({
+            where: { id },
+            relations: ['snippet', 'user', 'tags']
+        });
+        
+        if (!ps || ps.user.id !== Number(authUser.userId)) {
+            throw new NotFoundException('Private snippet not found');
+        }
+        
+        const { user, ...result } = ps;
+        return result;
+    }
+
+    async getVersions(authUser: AuthUser, id: number, opts: { page?: number; size?: number } = {}) {
+        const page = opts.page ?? 1;
+        const size = Math.min(opts.size ?? 20, 100);
+
+        // Verify ownership
+        const ps = await this.privateSnippetRepo.findOne({
+            where: { id },
+            relations: ['user']
+        });
+
+        if (!ps || ps.user.id !== Number(authUser.userId)) {
+            throw new NotFoundException('Private snippet not found');
+        }
+
+        const [items, total] = await this.versionRepo.findAndCount({
+            where: { privateSnippet: { id } },
+            order: { createdAt: 'DESC' },
+            skip: (page - 1) * size,
+            take: size
+        });
+
+        return { items, total, page, size };
+    }
+
+    async deleteVersion(authUser: AuthUser, snippetId: number, versionId: number) {
+        const ps = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['user']
+        });
+
+        if (!ps || ps.user.id !== Number(authUser.userId)) {
+            throw new NotFoundException('Private snippet not found');
+        }
+
+        const version = await this.versionRepo.findOne({
+            where: { id: versionId, privateSnippet: { id: snippetId } }
+        });
+
+        if (!version) {
+            throw new NotFoundException('Version not found');
+        }
+
+        await this.versionRepo.remove(version);
+        return { message: 'Version deleted successfully' };
+    }
+
+    async restoreVersion(authUser: AuthUser, snippetId: number, versionId: number) {
+        const ps = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['snippet', 'user']
+        });
+
+        if (!ps || ps.user.id !== Number(authUser.userId)) {
+            throw new NotFoundException('Private snippet not found');
+        }
+
+        const version = await this.versionRepo.findOne({
+            where: { id: versionId, privateSnippet: { id: snippetId } }
+        });
+
+        if (!version) {
+            throw new NotFoundException('Version not found');
+        }
+
+        // Restore without creating a new version
+        if (version.title) ps.snippet.title = version.title;
+        ps.snippet.content = version.content;
+        ps.snippet.language = version.language;
+        await this.snippetRepo.save(ps.snippet);
+
+        return { ...ps, user: undefined };
+    }
+
     async transformToPost(authUser: AuthUser, privateSnippetId: number, payload: { title: string, description: string, publish?: boolean }) {
         const user = await this.userRepo.findOne({ where: { id: Number(authUser.userId) } });
         if (!user) throw new NotFoundException('User not found');
@@ -146,28 +233,6 @@ export class PrivateSnippetsService {
         const removed = await this.privateSnippetRepo.softRemove(ps);
         const { user: _, ...result } = removed;
         return result;
-    }
-
-    async getVersions(authUser: AuthUser, id: number, opts: { page?: number; size?: number } = {}) {
-        const page = opts.page ?? 1;
-        const size = Math.min(opts.size ?? 20, 100);
-        
-        const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['user', 'versions'] });
-        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
-        
-        const sorted = ps.versions.sort((a, b) => b.version - a.version);
-        const items = sorted.slice((page - 1) * size, page * size);
-        const total = sorted.length;
-        
-        return { items, total, page, size };
-    }
-
-    async deleteVersion(authUser: AuthUser, id: number, versionId: number) {
-        const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['user', 'versions'] });
-        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
-        const version = ps.versions.find(v => v.id === versionId);
-        if (!version) throw new NotFoundException('Version not found');
-        return this.versionRepo.remove(version);
     }
 
     // Tag Assignment Methods
