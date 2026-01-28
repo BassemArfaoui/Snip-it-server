@@ -11,7 +11,7 @@ import { CollectionItemEnum } from '../../common/enums/collection-item.enum';
 import { Solution } from '../solutions/entities/solution.entity';
 import { Comment } from '../comments/entities/comment.entity';
 import { HashingService } from '../../common/services/hashing.service';
-import { UpdatePasswordDto, UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class ProfileService {
@@ -376,28 +376,5 @@ export class ProfileService {
 		};
 	}
 
-	async updatePassword(userId: number, dto: UpdatePasswordDto) {
-		const user = await this.usersRepo.findOne({ where: { id: userId } });
-		if (!user) {
-			throw new BadRequestException('User not found');
-		}
-
-		const isCurrentPasswordValid = await this.hashingService.compare(dto.currentPassword, user.password);
-		if (!isCurrentPasswordValid) {
-			throw new UnauthorizedException('Current password is incorrect');
-		}
-
-		if (dto.currentPassword === dto.newPassword) {
-			throw new BadRequestException('New password must be different from current password');
-		}
-
-		const hashedPassword = await this.hashingService.hash(dto.newPassword);
-		user.password = hashedPassword;
-		user.refreshTokenHash = null;
-		user.isEmailVerified = false;
-
-		await this.usersRepo.save(user);
-
-		return { message: 'Password updated successfully. Please verify your email address before proceeding.', requiresEmailVerification: true };
-	}
+	// Password update removed from profile service
 }

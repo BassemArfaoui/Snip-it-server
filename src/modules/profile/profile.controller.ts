@@ -3,7 +3,7 @@ import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorator/current-user.decorator';
 import { User } from '../users/entities/user.entity';
-import { UpdatePasswordDto, UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('profile')
@@ -152,21 +152,5 @@ export class ProfileController {
 		}
 	}
 
-	@Patch('password')
-	async updatePassword(
-		@Body() dto: UpdatePasswordDto,
-		@CurrentUser() user: User,
-	) {
-		try {
-			if (!user) {
-				throw new ForbiddenException('Authentication required');
-			}
-			return await this.profileService.updatePassword(user.id, dto);
-		} catch (error) {
-			if (error instanceof BadRequestException || error instanceof UnauthorizedException || error instanceof ForbiddenException) {
-				throw error;
-			}
-			throw new ForbiddenException('Failed to update password');
-		}
-	}
+	// Password update endpoint removed
 }
