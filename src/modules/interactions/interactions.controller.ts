@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ParseEnumPipe,
   Param,
   ParseIntPipe,
   Patch,
@@ -12,6 +13,7 @@ import {
 import type { Request } from 'express';
 import { JwtPayload } from 'jsonwebtoken';
 import { InteractionsService } from './interactions.service';
+import { InteractionTargetType } from '../../common/enums/interaction-target-type.enum';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { UpdateInteractionDto } from './dto/update-interaction.dto';
 
@@ -57,6 +59,21 @@ export class InteractionsController {
     }
 
     await this.interactionsService.delete(id, Number(userId));
+    return { success: true };
+  }
+
+  @Delete('target/:targetType/:targetId')
+  async removeByTarget(
+    @Param('targetType', new ParseEnumPipe(InteractionTargetType)) targetType: InteractionTargetType,
+    @Param('targetId', ParseIntPipe) targetId: number,
+    @Req() req: Request & { user?: JwtPayload },
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+
+    await this.interactionsService.deleteByTarget(Number(userId), targetType, targetId);
     return { success: true };
   }
 }
