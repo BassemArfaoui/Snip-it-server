@@ -10,7 +10,7 @@ import { PasswordReset } from './entities/password-reset.entity';
 import { User } from '../users/entities/user.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GitHubStrategy } from './strategies/github.strategy';
-import { GmailEmailProvider, EMAIL_PROVIDER_TOKEN } from './providers/email.provider';
+import { MailtrapEmailProvider, EMAIL_PROVIDER_TOKEN } from './providers/email.provider';
 import { GitHubAuthGuard } from './guards/github-auth.guard';
 
 @Module({
@@ -25,7 +25,7 @@ import { GitHubAuthGuard } from './guards/github-auth.guard';
         JwtStrategy,
         GitHubStrategy,
         GitHubAuthGuard,
-        { provide: EMAIL_PROVIDER_TOKEN, useClass: GmailEmailProvider },
+        { provide: EMAIL_PROVIDER_TOKEN, useClass: MailtrapEmailProvider },
     ],
     controllers: [AuthController],
 })
