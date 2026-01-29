@@ -1,0 +1,943 @@
+{
+  "info": {
+    "_postman_id": "a4b58f03-7df7-4b10-ae5e-10f6ff0f6b0f",
+    "name": "Snip-it API - All Endpoints",
+    "description": "Postman collection covering all NestJS HTTP endpoints found in server/src controllers (auth, posts, issues, solutions, comments, interactions, suggested-posts, profile, subscriptions, votes, docs).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health & Docs",
+      "item": [
+        {
+          "name": "Root Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/"
+          }
+        },
+        {
+          "name": "Who Am I",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/whoami",
+            "description": "Returns the current userId from the JWT payload."
+          }
+        },
+        {
+          "name": "API Documentation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/docs/api"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser{{$timestamp}}@example.com\",\n  \"password\": \"password123\",\n  \"username\": \"testuser{{$randomInt}}\",\n  \"fullName\": \"Test User\",\n  \"role\": \"user\",\n  \"imageProfile\": \"https://example.com/avatar.png\"\n}"
+            },
+            "url": "{{base_url}}/auth/register",
+            "description": "Register a new user. Note: login requires email verification (OTP sent via email provider)."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const tokens = json?.tokens ?? json;",
+                  "if (tokens?.accessToken) pm.collectionVariables.set('accessToken', tokens.accessToken);",
+                  "if (tokens?.refreshToken) pm.collectionVariables.set('refreshToken', tokens.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{identifier}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{base_url}}/auth/login",
+            "description": "Login with email or username (identifier) + password. Requires email to be verified."
+          }
+        },
+        {
+          "name": "Verify Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const tokens = json?.tokens ?? json;",
+                  "if (tokens?.accessToken) pm.collectionVariables.set('accessToken', tokens.accessToken);",
+                  "if (tokens?.refreshToken) pm.collectionVariables.set('refreshToken', tokens.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{otp}}\"\n}"
+            },
+            "url": "{{base_url}}/auth/verify-email",
+            "description": "Verify email with OTP and receive tokens."
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": "{{base_url}}/auth/resend-otp"
+          }
+        },
+        {
+          "name": "Refresh Tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const tokens = json?.tokens ?? json;",
+                  "if (tokens?.accessToken) pm.collectionVariables.set('accessToken', tokens.accessToken);",
+                  "if (tokens?.refreshToken) pm.collectionVariables.set('refreshToken', tokens.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{base_url}}/auth/refresh"
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            },
+            "url": "{{base_url}}/auth/forgot-password"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"newPassword456\"\n}"
+            },
+            "url": "{{base_url}}/auth/reset-password"
+          }
+        },
+        {
+          "name": "GitHub Auth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/auth/github",
+            "description": "Initiate GitHub OAuth login flow (browser redirect)."
+          }
+        },
+        {
+          "name": "GitHub Callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/auth/github/callback",
+            "description": "OAuth callback (typically hit by GitHub, not Postman)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Get All Posts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const first = Array.isArray(json?.data) ? json.data[0] : undefined;",
+                  "if (first?.id) pm.collectionVariables.set('postId', String(first.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/posts",
+            "description": "Protected route; requires JWT."
+          }
+        },
+        {
+          "name": "Get Post By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Get Post Share (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/posts/share/{{postId}}",
+            "description": "Public share endpoint (no auth)."
+          }
+        },
+        {
+          "name": "Create Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) pm.collectionVariables.set('postId', String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Post {{$timestamp}}\",\n  \"description\": \"A post created from Postman\",\n  \"snippetContent\": \"console.log('hello');\",\n  \"snippetLanguage\": \"JavaScript\",\n  \"snippetTitle\": \"Hello snippet\",\n  \"githubLink\": \"https://github.com/example/repo\"\n}"
+            },
+            "url": "{{base_url}}/posts"
+          }
+        },
+        {
+          "name": "Update Post",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Title {{$timestamp}}\"\n}"
+            },
+            "url": "{{base_url}}/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Delete Post",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/posts/{{postId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Issues",
+      "item": [
+        {
+          "name": "Create Issue",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) pm.collectionVariables.set('issueId', String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"This is a test issue with more than 10 characters\",\n  \"language\": \"JavaScript\"\n}"
+            },
+            "url": "{{base_url}}/issues"
+          }
+        },
+        {
+          "name": "Get All Issues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/issues?language=JavaScript&is_resolved=false&page=1&limit=10"
+          }
+        },
+        {
+          "name": "Get Single Issue",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/issues/{{issueId}}"
+          }
+        },
+        {
+          "name": "Update Issue",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated issue content with more than 10 characters\",\n  \"language\": \"Python\"\n}"
+            },
+            "url": "{{base_url}}/issues/{{issueId}}"
+          }
+        },
+        {
+          "name": "Delete Issue",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/issues/{{issueId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Solutions",
+      "item": [
+        {
+          "name": "Create Solution",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) pm.collectionVariables.set('solutionId', String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"This is a solution with more than 10 characters\",\n  \"externalLink\": \"https://example.com/solution\"\n}"
+            },
+            "url": "{{base_url}}/issues/{{issueId}}/solutions"
+          }
+        },
+        {
+          "name": "Get Issue Solutions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/issues/{{issueId}}/solutions"
+          }
+        },
+        {
+          "name": "Update Solution",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"textContent\": \"Updated solution content with more than 10 characters\"\n}"
+            },
+            "url": "{{base_url}}/solutions/{{solutionId}}"
+          }
+        },
+        {
+          "name": "Accept Solution",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/solutions/{{solutionId}}/accept"
+          }
+        },
+        {
+          "name": "Delete Solution",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/solutions/{{solutionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "List Post Comments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/comments/posts/{{postId}}?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Create Post Comment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) pm.collectionVariables.set('commentId', String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Comment from Postman {{$timestamp}}\"\n}"
+            },
+            "url": "{{base_url}}/comments/posts/{{postId}}"
+          }
+        },
+        {
+          "name": "Update Comment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated comment {{$timestamp}}\"\n}"
+            },
+            "url": "{{base_url}}/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "List Solution Comments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/comments/solutions/{{solutionId}}?page=1&limit=10"
+          }
+        },
+        {
+          "name": "Create Solution Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Solution comment {{$timestamp}}\"\n}"
+            },
+            "url": "{{base_url}}/comments/solutions/{{solutionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Interactions",
+      "item": [
+        {
+          "name": "Create Interaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json?.id) pm.collectionVariables.set('interactionId', String(json.id));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetType\": \"POST\",\n  \"targetId\": {{postId}},\n  \"type\": \"HEART\"\n}"
+            },
+            "url": "{{base_url}}/interactions"
+          }
+        },
+        {
+          "name": "Update Interaction",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"FIRE\"\n}"
+            },
+            "url": "{{base_url}}/interactions/{{interactionId}}"
+          }
+        },
+        {
+          "name": "Delete Interaction",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/interactions/{{interactionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Suggested Posts",
+      "item": [
+        {
+          "name": "Get Suggested Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/suggested-posts?page=1&limit=10"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/profile/{{userId}}"
+          }
+        },
+        {
+          "name": "Get Saved Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/profile/{{userId}}/saved_posts"
+          }
+        },
+        {
+          "name": "Get Badges",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/profile/{{userId}}/bagdes"
+          }
+        },
+        {
+          "name": "Get User Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/profile/{{userId}}/posts"
+          }
+        },
+        {
+          "name": "Get User Issues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/profile/{{userId}}/issues"
+          }
+        },
+        {
+          "name": "Get Contribution Graph",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/profile/{{userId}}/contrubution_graph"
+          }
+        },
+        {
+          "name": "Get Streak",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/profile/{{userId}}/streak"
+          }
+        },
+        {
+          "name": "Get Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/profile/{{userId}}/leader_board"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"updated_user_{{$randomInt}}\"\n}"
+            },
+            "url": "{{base_url}}/profile"
+          }
+        },
+        {
+          "name": "Update Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"newPassword456\"\n}"
+            },
+            "url": "{{base_url}}/profile/password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Follow User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/subscriptions/{{targetUserId}}"
+          }
+        },
+        {
+          "name": "Unfollow User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "url": "{{base_url}}/subscriptions/{{targetUserId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Votes",
+      "item": [
+        {
+          "name": "Vote on Content",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetId\": {{issueId}},\n  \"targetType\": \"ISSUE\",\n  \"isDislike\": false\n}"
+            },
+            "url": "{{base_url}}/votes"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string", "description": "JWT access token used for Bearer auth" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "identifier", "value": "", "type": "string", "description": "Email or username for login" },
+    { "key": "password", "value": "password123", "type": "string" },
+    { "key": "email", "value": "", "type": "string" },
+    { "key": "otp", "value": "", "type": "string" },
+    { "key": "resetToken", "value": "", "type": "string" },
+    { "key": "userId", "value": "1", "type": "string" },
+    { "key": "targetUserId", "value": "2", "type": "string" },
+    { "key": "issueId", "value": "1", "type": "string" },
+    { "key": "solutionId", "value": "1", "type": "string" },
+    { "key": "postId", "value": "1", "type": "string" },
+    { "key": "commentId", "value": "1", "type": "string" },
+    { "key": "interactionId", "value": "1", "type": "string" }
+  ]
+}
