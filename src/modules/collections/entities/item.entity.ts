@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { CollectionItemEnum } from '../../../common/enums/collection-item.enum';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { Collection } from './collection.entity';
@@ -6,6 +6,7 @@ import { Collection } from './collection.entity';
 @Entity('collection_items')
 export class CollectionItem extends BaseEntity {
     @ManyToOne(() => Collection, c => c.items)
+    @JoinColumn({ name: 'collectionId' })
     collection: Collection;
 
     @Column()
@@ -16,4 +17,7 @@ export class CollectionItem extends BaseEntity {
 
     @Column({ default: false })
     isPinned: boolean;
+
+    @Column({ default: false })
+    isFavorite: boolean;
 }

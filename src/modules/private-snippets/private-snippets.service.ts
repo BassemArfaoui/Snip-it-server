@@ -1,0 +1,294 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PrivateSnippet } from './entities/private-snippet.entity';
+import { Snippet } from '../snippet/entities/snippet.entity';
+import { Post } from '../posts/entities/post.entity';
+import { User } from '../users/entities/user.entity';
+import { PrivateSnippetVersion } from './entities/private-snippet-version.entity';
+import { Tag } from '../tags/entities/tag.entity';
+
+export interface AuthUser {
+    userId: string;
+    username: string;
+    email: string;
+}
+
+@Injectable()
+export class PrivateSnippetsService {
+    constructor(
+        @InjectRepository(PrivateSnippet) private privateSnippetRepo: Repository<PrivateSnippet>,
+        @InjectRepository(Snippet) private snippetRepo: Repository<Snippet>,
+        @InjectRepository(Post) private postRepo: Repository<Post>,
+        @InjectRepository(User) private userRepo: Repository<User>,
+        @InjectRepository(PrivateSnippetVersion) private versionRepo: Repository<PrivateSnippetVersion>,
+        @InjectRepository(Tag) private tagRepo: Repository<Tag>,
+    ) { }
+
+    async createPrivateSnippet(authUser: AuthUser, title: string | undefined, content: string, language: string) {
+        const user = await this.userRepo.findOne({ where: { id: Number(authUser.userId) } });
+        if (!user) throw new NotFoundException('User not found');
+        
+        // Check if snippet with same title already exists for this user (if title is provided)
+        if (title) {
+            const existing = await this.privateSnippetRepo
+                .createQueryBuilder('ps')
+                .leftJoin('ps.snippet', 'snippet')
+                .leftJoin('ps.user', 'user')
+                .where('user.id = :userId', { userId: user.id })
+                .andWhere('snippet.title = :title', { title })
+                .getOne();
+            if (existing) throw new BadRequestException(`Private snippet with title "${title}" already exists`);
+        }
+        
+        const snippet = this.snippetRepo.create({ title, content, language });
+        await this.snippetRepo.save(snippet);
+        const privateSnippet = this.privateSnippetRepo.create({ snippet, user });
+        const saved = await this.privateSnippetRepo.save(privateSnippet);
+        const { user: _, ...result } = saved;
+        return result;
+    }
+
+    async updatePrivateSnippet(authUser: AuthUser, id: number, payload: { title?: string; content?: string; language?: string }) {
+        const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['snippet', 'user', 'versions'] });
+        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+
+        // Check if new title conflicts with existing snippet
+        if (payload.title !== undefined && payload.title !== ps.snippet.title) {
+            const existing = await this.privateSnippetRepo
+                .createQueryBuilder('ps')
+                .leftJoin('ps.snippet', 'snippet')
+                .leftJoin('ps.user', 'user')
+                .where('user.id = :userId', { userId: ps.user.id })
+                .andWhere('snippet.title = :title', { title: payload.title })
+                .andWhere('ps.id != :id', { id })
+                .getOne();
+            if (existing) throw new BadRequestException(`Private snippet with title "${payload.title}" already exists`);
+        }
+
+        // Save a version snapshot before updating
+        const versionNumber = (ps.versions?.length ?? 0) + 1;
+        const version = this.versionRepo.create({
+            privateSnippet: ps,
+            title: ps.snippet.title,
+            content: ps.snippet.content,
+            language: ps.snippet.language,
+            version: versionNumber,
+        });
+        await this.versionRepo.save(version);
+
+        if (payload.title !== undefined) ps.snippet.title = payload.title;
+        if (payload.content !== undefined) ps.snippet.content = payload.content;
+        if (payload.language !== undefined) ps.snippet.language = payload.language;
+
+        await this.snippetRepo.save(ps.snippet);
+        return { ...ps, versions: undefined, user: undefined }; // trim versions and user in response
+    }
+
+    async getUserPrivateSnippets(authUser: AuthUser, opts: { page?: number; size?: number; q?: string; language?: string; tags?: string[] } = {}) {
+        const page = opts.page ?? 1;
+        const size = Math.min(opts.size ?? 20, 100);
+        
+        const qb = this.privateSnippetRepo.createQueryBuilder('ps')
+            .leftJoinAndSelect('ps.snippet', 'snippet')
+            .leftJoinAndSelect('ps.tags', 'tags')
+            .where('ps.userId = :userId', { userId: authUser.userId })
+            .andWhere('snippet.posted = false');
+        
+        if (opts.q) {
+            qb.andWhere('(snippet.title ILIKE :q OR snippet.content ILIKE :q)', { q: `%${opts.q}%` });
+        }
+        
+        if (opts.language) {
+            qb.andWhere('snippet.language = :lang', { lang: opts.language });
+        }
+
+        if (opts.tags && opts.tags.length > 0) {
+            qb.andWhere('tags.name IN (:...tags)', { tags: opts.tags });
+        }
+        
+        const [items, total] = await qb.skip((page - 1) * size).take(size).getManyAndCount();
+        // Remove user data from all items
+        const sanitizedItems = items.map(({ user, ...item }) => item);
+        return { items: sanitizedItems, total, page, size };
+    }
+
+    async getSnippetById(authUser: AuthUser, id: number) {
+        const ps = await this.privateSnippetRepo.findOne({
+            where: { id },
+            relations: ['snippet', 'user', 'tags']
+        });
+        
+        if (!ps || ps.user.id !== Number(authUser.userId)) {
+            throw new NotFoundException('Private snippet not found');
+        }
+        
+        const { user, ...result } = ps;
+        return result;
+    }
+
+    async getVersions(authUser: AuthUser, id: number, opts: { page?: number; size?: number } = {}) {
+        const page = opts.page ?? 1;
+        const size = Math.min(opts.size ?? 20, 100);
+
+        // Verify ownership
+        const ps = await this.privateSnippetRepo.findOne({
+            where: { id },
+            relations: ['user']
+        });
+
+        if (!ps || ps.user.id !== Number(authUser.userId)) {
+            throw new NotFoundException('Private snippet not found');
+        }
+
+        const [items, total] = await this.versionRepo.findAndCount({
+            where: { privateSnippet: { id } },
+            order: { createdAt: 'DESC' },
+            skip: (page - 1) * size,
+            take: size
+        });
+
+        return { items, total, page, size };
+    }
+
+    async deleteVersion(authUser: AuthUser, snippetId: number, versionId: number) {
+        const ps = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['user']
+        });
+
+        if (!ps || ps.user.id !== Number(authUser.userId)) {
+            throw new NotFoundException('Private snippet not found');
+        }
+
+        const version = await this.versionRepo.findOne({
+            where: { id: versionId, privateSnippet: { id: snippetId } }
+        });
+
+        if (!version) {
+            throw new NotFoundException('Version not found');
+        }
+
+        await this.versionRepo.remove(version);
+        return { message: 'Version deleted successfully' };
+    }
+
+    async restoreVersion(authUser: AuthUser, snippetId: number, versionId: number) {
+        const ps = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['snippet', 'user']
+        });
+
+        if (!ps || ps.user.id !== Number(authUser.userId)) {
+            throw new NotFoundException('Private snippet not found');
+        }
+
+        const version = await this.versionRepo.findOne({
+            where: { id: versionId, privateSnippet: { id: snippetId } }
+        });
+
+        if (!version) {
+            throw new NotFoundException('Version not found');
+        }
+
+        // Restore without creating a new version
+        if (version.title) ps.snippet.title = version.title;
+        ps.snippet.content = version.content;
+        ps.snippet.language = version.language;
+        await this.snippetRepo.save(ps.snippet);
+
+        return { ...ps, user: undefined };
+    }
+
+    async transformToPost(authUser: AuthUser, privateSnippetId: number, payload: { title: string, description: string, publish?: boolean }) {
+        const user = await this.userRepo.findOne({ where: { id: Number(authUser.userId) } });
+        if (!user) throw new NotFoundException('User not found');
+        
+        const ps = await this.privateSnippetRepo.findOne({ where: { id: privateSnippetId }, relations: ['snippet', 'user'] });
+        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+        const post = this.postRepo.create({
+            title: payload.title,
+            description: payload.description,
+            snippet: ps.snippet,
+            author: user,
+            language: ps.snippet.language,
+            isDraft: !payload.publish,
+        });
+        const saved = await this.postRepo.save(post);
+        // mark snippet as posted to hide from the personal list
+        ps.snippet.posted = true;
+        await this.snippetRepo.save(ps.snippet);
+        
+        // Sanitize author data to remove sensitive information
+        if (saved.author) {
+            const { password, refreshTokenHash, email, ...safeAuthor } = saved.author;
+            return { ...saved, author: safeAuthor };
+        }
+        return saved;
+    }
+
+    async deletePrivateSnippet(authUser: AuthUser, id: number) {
+        const ps = await this.privateSnippetRepo.findOne({ where: { id }, relations: ['user'] });
+        if (!ps || ps.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+        const removed = await this.privateSnippetRepo.softRemove(ps);
+        const { user: _, ...result } = removed;
+        return result;
+    }
+
+    // Tag Assignment Methods
+    async assignTagToSnippet(authUser: AuthUser, snippetId: number, tagId: number) {
+        const snippet = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['user', 'tags'],
+        });
+
+        if (!snippet) throw new NotFoundException('Private snippet not found');
+        if (snippet.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+
+        const tag = await this.tagRepo.findOne({ where: { id: tagId } });
+        if (!tag) throw new NotFoundException('Tag not found');
+        if (tag.user.id !== Number(authUser.userId)) throw new BadRequestException('You can only assign your own tags');
+
+        // Check if tag already assigned
+        if (snippet.tags.some(t => t.id === tagId)) {
+            throw new BadRequestException('Tag already assigned to this snippet');
+        }
+
+        snippet.tags.push(tag);
+        await this.privateSnippetRepo.save(snippet);
+
+        return { message: 'Tag assigned successfully' };
+    }
+
+    async removeTagFromSnippet(authUser: AuthUser, snippetId: number, tagId: number) {
+        const snippet = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['user', 'tags'],
+        });
+
+        if (!snippet) throw new NotFoundException('Private snippet not found');
+        if (snippet.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+
+        const tagIndex = snippet.tags.findIndex(t => t.id === tagId);
+        if (tagIndex === -1) throw new NotFoundException('Tag not assigned to this snippet');
+
+        snippet.tags.splice(tagIndex, 1);
+        await this.privateSnippetRepo.save(snippet);
+
+        return { message: 'Tag removed successfully' };
+    }
+
+    async getSnippetTags(authUser: AuthUser, snippetId: number) {
+        const snippet = await this.privateSnippetRepo.findOne({
+            where: { id: snippetId },
+            relations: ['user', 'tags'],
+        });
+
+        if (!snippet) throw new NotFoundException('Private snippet not found');
+        if (snippet.user.id !== Number(authUser.userId)) throw new NotFoundException('Private snippet not found');
+
+        return snippet.tags
+            .map(({ user, ...tag }) => tag)
+            .sort((a, b) => a.order - b.order);
+    }
+}

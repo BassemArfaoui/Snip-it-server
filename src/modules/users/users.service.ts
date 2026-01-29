@@ -36,6 +36,14 @@ export class UsersService {
         });
     }
 
+    async findOneByEmailOrUsernameWithPassword(identifier: string): Promise<User | null> {
+        return this.usersRepository
+            .createQueryBuilder('user')
+            .where('user.email = :identifier OR user.username = :identifier', { identifier })
+            .addSelect('user.password')
+            .getOne();
+    }
+
     async findOneWithRefreshToken(userId: number): Promise<User | null> {
         return this.usersRepository.findOne({
             where: { id: userId },

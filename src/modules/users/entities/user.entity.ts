@@ -1,4 +1,5 @@
 import { Entity, Column, OneToMany } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { PrivateSnippet } from '../../private-snippets/entities/private-snippet.entity';
 import { Post } from '../../posts/entities/post.entity';
@@ -15,7 +16,8 @@ export class User extends BaseEntity {
     @Column({ unique: true })
     email: string;
 
-    @Column()
+    @Column({ select: false })
+    @Exclude()
     password: string;
 
     @Column({ unique: true })
