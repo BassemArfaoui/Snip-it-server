@@ -34,8 +34,8 @@ export class MailtrapEmailProvider implements EmailProvider {
                     html: `
                         <h2>Verify Your Email</h2>
                         <p>Your verification code is:</p>
-                        <h1 style="letter-spacing: 5px; font-size: 28px;">${otp}</h1>
-                        <p>This code expires in 10 minutes.</p>
+                        <h1 style="letter-spacing: 6px; font-size: 30px;">${otp}</h1>
+                        <p>This code expires in 10 minutes ! .</p>
                     `,
                 },
                 {
@@ -45,7 +45,7 @@ export class MailtrapEmailProvider implements EmailProvider {
                     },
                 }
             );
-            console.log('[Email Verification] ✅ Email sent:', response.data.success);
+            console.log('[Email Verification]  Email sent:', response.data.success);
         } catch (error) {
             console.error('[Email Verification] Failed to send OTP:', error.response?.data || error.message);
             throw error;
@@ -64,9 +64,9 @@ export class MailtrapEmailProvider implements EmailProvider {
                     subject: 'Password Reset Request',
                     html: `
                         <h2>Reset Your Password</h2>
-                        <p><a href="${resetLink}" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+                        <p><a href="${resetLink}" style="padding: 10px 20px; background: #887bff; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
                         <p>Or copy this link: <a href="${resetLink}">${resetLink}</a></p>
-                        <p>This link expires in 10 minutes.</p>
+                        <p>This link expires in 10 minutes ! .</p>
                     `,
                 },
                 {
@@ -76,7 +76,7 @@ export class MailtrapEmailProvider implements EmailProvider {
                     },
                 }
             );
-            console.log('[Password Reset] ✅ Email sent:', response.data.success);
+            console.log('[Password Reset]  Email sent:', response.data.success);
         } catch (error) {
             console.error('[Password Reset] Failed to send link:', error.response?.data || error.message);
             throw error;
