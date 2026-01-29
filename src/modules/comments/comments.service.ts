@@ -47,6 +47,10 @@ export class CommentsService {
         });
 
         const saved = await this.commentRepo.save(comment);
+
+        // Increment comment count on post
+        await this.postRepo.increment({ id: postId }, 'commentsCount', 1);
+
         const withUser = await this.commentRepo.findOne({ where: { id: saved.id }, relations: ['user'] });
         return withUser ?? saved;
     }
@@ -83,6 +87,9 @@ export class CommentsService {
         await this.commentRepo.update({ id: commentId }, { isDeleted: true });
 
         // Decrement comment count based on target type
+        if (comment.targetType === CommentTypeEnum.POST) {
+            await this.postRepo.decrement({ id: comment.targetId }, 'commentsCount', 1);
+        }
         if (comment.targetType === CommentTypeEnum.SOLUTION) {
             await this.solutionRepo.decrement({ id: comment.targetId }, 'commentsCount', 1);
         }

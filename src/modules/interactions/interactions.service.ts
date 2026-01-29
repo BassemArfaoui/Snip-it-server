@@ -5,6 +5,7 @@ import { Interaction } from './entities/interaction.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateInteractionDto } from './dto/create-interaction.dto';
 import { UpdateInteractionDto } from './dto/update-interaction.dto';
+import { InteractionTargetType } from '../../common/enums/interaction-target-type.enum';
 
 @Injectable()
 export class InteractionsService {
@@ -98,5 +99,18 @@ export class InteractionsService {
     }
 
     await this.interactionRepo.delete({ id });
+  }
+
+  async deleteByTarget(
+    requesterId: number,
+    targetType: InteractionTargetType,
+    targetId: number,
+  ): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: requesterId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    await this.interactionRepo.delete({ userId: requesterId, targetType, targetId });
   }
 }
