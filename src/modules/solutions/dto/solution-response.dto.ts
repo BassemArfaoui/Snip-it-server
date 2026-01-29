@@ -12,6 +12,13 @@ export class SolutionResponseDto {
 
   textContent?: string;
 
+  snippet?: {
+    id: number;
+    title: string;
+    content: string;
+    language: string;
+  } | null;
+
   externalLink?: string;
 
   imageUrl?: string;
@@ -35,6 +42,16 @@ export class SolutionResponseDto {
       } : null,
 
       textContent: solution.textContent,
+
+      snippet: solution.snippet
+        ? {
+            id: solution.snippet.id,
+            title: solution.snippet.title,
+            content: solution.snippet.content,
+            language: solution.snippet.language,
+          }
+        : null,
+
       externalLink: solution.externalLink,
       imageUrl: solution.imageUrl,
 

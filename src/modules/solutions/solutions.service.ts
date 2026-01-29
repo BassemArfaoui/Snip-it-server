@@ -12,6 +12,7 @@ import { Issue } from '../issues/entities/issue.entity';
 import { User } from '../users/entities/user.entity';
 import { Solution } from './entities/solution.entity';
 import { ProfileService } from '../profile/profile.service';
+import { Snippet } from '../snippet/entities/snippet.entity';
 
 @Injectable()
 export class SolutionsService {
@@ -27,8 +28,8 @@ export class SolutionsService {
     dto: CreateSolutionDto,
   ): Promise<Solution> {
     // Validate that at least one field is provided
-    if (!dto.textContent && !dto.externalLink && !dto.imageUrl) {
-      throw new BadRequestException('Either textContent, externalLink, or imageUrl must be provided');
+    if (!dto.textContent && !dto.externalLink && !dto.imageUrl && !dto.snippet) {
+      throw new BadRequestException('Either textContent, snippet, externalLink, or imageUrl must be provided');
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -47,10 +48,19 @@ export class SolutionsService {
       }
 
       // Create solution
+      const snippet = dto.snippet
+        ? manager.create(Snippet, {
+            title: dto.snippet.title,
+            content: dto.snippet.content,
+            language: dto.snippet.language,
+          })
+        : undefined;
+
       const solution = manager.create(Solution, {
         issue,
         contributor,
         textContent: dto.textContent,
+        snippet,
         externalLink: dto.externalLink,
         imageUrl: dto.imageUrl,
       });
@@ -124,7 +134,18 @@ export class SolutionsService {
       throw new BadRequestException('Cannot update an accepted solution');
     }
 
-    Object.assign(solution, dto);
+    const { snippet, ...rest } = dto;
+    Object.assign(solution, rest);
+
+    if (snippet) {
+      if (solution.snippet) {
+        Object.assign(solution.snippet, snippet);
+      } else {
+        const newSnippet = new Snippet();
+        Object.assign(newSnippet, snippet);
+        solution.snippet = newSnippet;
+      }
+    }
     return this.solutionRepo.repo.save(solution);
   }
 
@@ -185,7 +206,7 @@ export class SolutionsService {
     return this.dataSource.transaction(async (manager) => {
       const solution = await manager.findOne(Solution, {
         where: { id: solutionId, isDeleted: false },
-        relations: ['contributor', 'issue', 'issue.user'],
+        relations: ['contributor', 'issue', 'issue.user', 'snippet'],
       });
 
       if (!solution) {

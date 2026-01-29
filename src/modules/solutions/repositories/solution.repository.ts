@@ -13,7 +13,7 @@ export class SolutionRepository {
   async findByIssue(issueId: number): Promise<Solution[]> {
     return this.repo.find({
       where: { issue: { id: issueId }, isDeleted: false },
-      relations: ['contributor', 'issue'],
+      relations: ['contributor', 'issue', 'snippet'],
       order: { createdAt: 'ASC' },
     });
   }
@@ -21,7 +21,7 @@ export class SolutionRepository {
   async findById(solutionId: number): Promise<Solution | null> {
     return this.repo.findOne({
       where: { id: solutionId, isDeleted: false },
-      relations: ['contributor', 'issue', 'issue.user'],
+      relations: ['contributor', 'issue', 'issue.user', 'snippet'],
     });
   }
 
