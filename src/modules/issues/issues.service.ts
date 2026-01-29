@@ -28,6 +28,7 @@ export class IssuesService {
     if (!user) throw new NotFoundException('User not found');
 
     const newIssue = manager.create(Issue, {
+      title: dto.title,
       content: dto.content,
       language: dto.language,
       imageUrl: dto.imageUrl,

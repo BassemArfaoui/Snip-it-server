@@ -8,6 +8,9 @@ export class Issue extends BaseEntity {
     @ManyToOne(() => User, user => user.issues)
     user: User;
 
+    @Column({ type: 'varchar', length: 120 })
+    title: string;
+
     @Column({ type: 'text' })
     content: string;
 

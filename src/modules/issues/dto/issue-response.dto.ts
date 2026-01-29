@@ -2,6 +2,7 @@ import { Issue } from '../entities/issue.entity';
 
 export class IssueResponseDto {
   id: number;
+  title: string;
   content: string;
   language?: string;
   imageUrl?: string;
@@ -18,6 +19,7 @@ export class IssueResponseDto {
   static fromEntity(issue: Issue): IssueResponseDto {
     return {
       id: issue.id,
+      title: issue.title,
       content: issue.content,
       language: issue.language,
       imageUrl: issue.imageUrl,

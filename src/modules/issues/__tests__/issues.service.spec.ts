@@ -43,6 +43,7 @@ describe('IssuesService', () => {
 
   const mockIssue: Issue = {
     id: 1,
+    title: 'test issue title',
     content: 'test issue content',
     language: 'javascript',
     user: mockUser,
@@ -95,7 +96,7 @@ describe('IssuesService', () => {
       );
 
       const result = await service.create(
-        { content: 'test issue content', language: 'javascript' },
+        { title: 'test issue title', content: 'test issue content', language: 'javascript' },
         1,
       );
 
@@ -104,6 +105,7 @@ describe('IssuesService', () => {
         where: { id: 1 },
       });
       expect(mockEntityManager.create).toHaveBeenCalledWith(Issue, {
+        title: 'test issue title',
         content: 'test issue content',
         language: 'javascript',
         user: mockUser,
@@ -118,7 +120,7 @@ describe('IssuesService', () => {
       mockEntityManager.save.mockResolvedValue(mockIssue);
 
       await service.create(
-        { content: 'test issue content', language: 'javascript' },
+        { title: 'test issue title', content: 'test issue content', language: 'javascript' },
         1,
       );
 
