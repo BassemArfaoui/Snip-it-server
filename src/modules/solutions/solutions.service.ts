@@ -202,6 +202,50 @@ export class SolutionsService {
     });
   }
 
+  // Admin: delete any solution (bypass ownership checks)
+  async adminDelete(solutionId: number): Promise<void> {
+    return this.dataSource.transaction(async (manager) => {
+      const solution = await manager.findOne(Solution, {
+        where: { id: solutionId, isDeleted: false },
+        relations: ['contributor', 'issue'],
+      });
+
+      if (!solution) {
+        throw new NotFoundException('Solution not found');
+      }
+
+      // Soft delete solution
+      await manager.update(Solution, { id: solutionId }, { isDeleted: true });
+
+      // Decrement issue solutions count
+      await manager.decrement(
+        Issue,
+        { id: solution.issue.id },
+        'solutionsCount',
+        1,
+      );
+
+      // Decrement contributor score
+      await manager.decrement(
+        User,
+        { id: solution.contributor.id },
+        'contributorScore',
+        1,
+      );
+
+      // Decrement contributor solutions count
+      await manager.decrement(
+        User,
+        { id: solution.contributor.id },
+        'solutionsCount',
+        1,
+      );
+
+      // Recalculate contributor score based on actual data
+      await this.profileService.calculateAndPersistScore(solution.contributor.id);
+    });
+  }
+
   async acceptSolution(solutionId: number, user: User): Promise<Solution> {
     return this.dataSource.transaction(async (manager) => {
       const solution = await manager.findOne(Solution, {
