@@ -364,7 +364,10 @@ export class CollectionsService {
             .addSelect('issue.language', 'issue_language')
             .addSelect('solution.id', 'solution_id')
             .addSelect('solution.textContent', 'solution_textContent')
-            .addSelect('solution_issue.language', 'solution_language')
+            .addSelect('solution_snippet.language', 'solution_snippet_language')
+            .addSelect('solution_issue.id', 'solution_issue_id')
+            .addSelect('solution_issue.id', 'solution_issue_id')
+            .addSelect('solution_issue.language', 'solution_issue_language')
             .addSelect('snippet.id', 'snippet_id')
             .addSelect('snippet.title', 'snippet_title')
             .addSelect('snippet.language', 'snippet_language')
@@ -375,6 +378,7 @@ export class CollectionsService {
             .leftJoin('posts', 'post', "ci.targetType = 'POST' AND ci.targetId = post.id")
             .leftJoin('issues', 'issue', "ci.targetType = 'ISSUE' AND ci.targetId = issue.id")
             .leftJoin('solutions', 'solution', "ci.targetType = 'SOLUTION' AND ci.targetId = solution.id")
+            .leftJoin('snippets', 'solution_snippet', 'solution.snippetId = solution_snippet.id')
             .leftJoin('issues', 'solution_issue', 'solution.issueId = solution_issue.id')
             .leftJoin('private_snippets', 'private_snippet', "ci.targetType = 'PRIVATE_SNIPPET' AND ci.targetId = private_snippet.id")
             .leftJoin('snippets', 'snippet', 'private_snippet.snippetId = snippet.id');
@@ -392,8 +396,9 @@ export class CollectionsService {
 
         if (opts.language) {
             // Only filter items that have language (POST, ISSUE, SOLUTION, and PRIVATE_SNIPPET)
+            // For solutions, prefer snippet language if available, otherwise fall back to issue language
             qb = qb.andWhere(
-                '((ci.targetType = :postType AND "post"."language" = :lang) OR (ci.targetType = :issueType AND "issue"."language" = :lang) OR (ci.targetType = :solutionType AND "solution_issue"."language" = :lang) OR (ci.targetType = :snippetType AND "snippet"."language" = :lang))',
+                '((ci.targetType = :postType AND "post"."language" = :lang) OR (ci.targetType = :issueType AND "issue"."language" = :lang) OR (ci.targetType = :solutionType AND (COALESCE("solution_snippet"."language", "solution_issue"."language") = :lang)) OR (ci.targetType = :snippetType AND "snippet"."language" = :lang))',
                 { postType: CollectionItemEnum.POST, issueType: CollectionItemEnum.ISSUE, solutionType: CollectionItemEnum.SOLUTION, snippetType: CollectionItemEnum.PRIVATE_SNIPPET, lang: opts.language }
             );
         }
@@ -450,7 +455,8 @@ export class CollectionsService {
                     title: solutionText ? solutionText.slice(0, 80) : 'Solution',
                     description: solutionSnippet,
                     content: item.solution_textContent,
-                    language: item.solution_language,
+                    language: item.solution_snippet_language || item.solution_issue_language,
+                    issueId: item.solution_issue_id,
                 };
             } else if (item.targetType === CollectionItemEnum.PRIVATE_SNIPPET && item.snippet_id) {
                 result.target = {
@@ -565,7 +571,9 @@ export class CollectionsService {
             .addSelect('issue.language', 'issue_language')
             .addSelect('solution.id', 'solution_id')
             .addSelect('solution.textContent', 'solution_textContent')
-            .addSelect('solution_issue.language', 'solution_language')
+            .addSelect('solution_snippet.language', 'solution_snippet_language')
+            .addSelect('solution_issue.id', 'solution_issue_id')
+            .addSelect('solution_issue.language', 'solution_issue_language')
             .addSelect('snippet.id', 'snippet_id')
             .addSelect('snippet.title', 'snippet_title')
             .addSelect('snippet.language', 'snippet_language')
@@ -578,6 +586,7 @@ export class CollectionsService {
             .leftJoin('posts', 'post', "ci.targetType = 'POST' AND ci.targetId = post.id")
             .leftJoin('issues', 'issue', "ci.targetType = 'ISSUE' AND ci.targetId = issue.id")
             .leftJoin('solutions', 'solution', "ci.targetType = 'SOLUTION' AND ci.targetId = solution.id")
+            .leftJoin('snippets', 'solution_snippet', 'solution.snippetId = solution_snippet.id')
             .leftJoin('issues', 'solution_issue', 'solution.issueId = solution_issue.id')
             .leftJoin('private_snippets', 'private_snippet', "ci.targetType = 'PRIVATE_SNIPPET' AND ci.targetId = private_snippet.id")
             .leftJoin('snippets', 'snippet', 'private_snippet.snippetId = snippet.id');
@@ -595,7 +604,7 @@ export class CollectionsService {
 
         if (opts.language) {
             qb = qb.andWhere(
-                '((ci.targetType = :postType AND "post"."language" = :lang) OR (ci.targetType = :issueType AND "issue"."language" = :lang) OR (ci.targetType = :solutionType AND "solution_issue"."language" = :lang) OR (ci.targetType = :snippetType AND "snippet"."language" = :lang))',
+                '((ci.targetType = :postType AND "post"."language" = :lang) OR (ci.targetType = :issueType AND "issue"."language" = :lang) OR (ci.targetType = :solutionType AND (COALESCE("solution_snippet"."language", "solution_issue"."language") = :lang)) OR (ci.targetType = :snippetType AND "snippet"."language" = :lang))',
                 { postType: CollectionItemEnum.POST, issueType: CollectionItemEnum.ISSUE, solutionType: CollectionItemEnum.SOLUTION, snippetType: CollectionItemEnum.PRIVATE_SNIPPET, lang: opts.language }
             );
         }
@@ -651,7 +660,8 @@ export class CollectionsService {
                     title: solutionText ? solutionText.slice(0, 80) : 'Solution',
                     description: solutionSnippet,
                     content: item.solution_textContent,
-                    language: item.solution_language,
+                    language: item.solution_snippet_language || item.solution_issue_language,
+                    issueId: item.solution_issue_id,
                 };
             } else if (item.targetType === CollectionItemEnum.PRIVATE_SNIPPET && item.snippet_id) {
                 result.target = {
