@@ -22,6 +22,14 @@ export class IssueRepository {
     });
   }
 
+  async findByIdWithDeleted(issueId: number): Promise<Issue | null> {
+    return this.repo.findOne({
+      where: { id: issueId },
+      relations: ['user', 'solutions'],
+      withDeleted: true as any,
+    });
+  }
+
   async findAll(
     filters: { language?: string; isResolved?: boolean },
     page = 1,
@@ -50,6 +58,14 @@ export class IssueRepository {
       await this.repo.update({ id: issueId }, updateData);
     }
     return this.findById(issueId);
+  }
+
+  async restoreIssue(issueId: number): Promise<Issue | null> {
+    const issue = await this.findByIdWithDeleted(issueId);
+    if (!issue) return null;
+    issue.isDeleted = false as any;
+    (issue as any).deletedAt = null;
+    return this.repo.save(issue);
   }
 
   async softDeleteById(issueId: number): Promise<boolean> {

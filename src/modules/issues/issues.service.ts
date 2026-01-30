@@ -107,13 +107,45 @@ export class IssuesService {
         throw new ForbiddenException('You are not the owner');
       }
 
-      // Soft delete issue
-      await manager.update(Issue, { id: issueId }, { isDeleted: true });
+      // Soft delete issue and set deletedAt
+      await manager.update(Issue, { id: issueId }, { isDeleted: true, deletedAt: new Date() });
 
       // Recalculate contributor score for the owner
       await this.profileService.calculateAndPersistScore(issue.user.id);
 
     });
+  }
+
+  // Admin: delete any issue
+  async adminDelete(issueId: number): Promise<void> {
+    return this.dataSource.transaction(async (manager) => {
+      // allow admin to find issue even if already deleted
+      const issue = await manager.findOne(Issue, {
+        where: { id: issueId },
+        relations: ['user'],
+        withDeleted: true as any,
+      });
+
+      if (!issue) {
+        throw new NotFoundException('Issue not found');
+      }
+
+      await manager.update(Issue, { id: issueId }, { isDeleted: true, deletedAt: new Date() });
+
+      // Recalculate contributor score for the owner
+      await this.profileService.calculateAndPersistScore(issue.user.id);
+    });
+  }
+
+  // Admin: restore any issue
+  async adminRestore(issueId: number): Promise<void> {
+    // use repository helper to restore including soft-deleted rows
+    const restored = await this.issueRepository.restoreIssue(issueId);
+    if (!restored) throw new NotFoundException('Issue not found');
+    // Recalculate score for the owner if available
+    if (restored.user?.id) {
+      await this.profileService.calculateAndPersistScore(restored.user.id);
+    }
   }
 
   async resolve(issueId: number, userId: number) {

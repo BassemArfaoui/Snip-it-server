@@ -10,5 +10,6 @@ import { ProfileModule } from '../profile/profile.module';
   imports: [TypeOrmModule.forFeature([Issue]), ProfileModule],
   controllers: [IssuesController],
   providers: [IssuesService, IssueRepository],
+  exports: [IssuesService],
 })
 export class IssuesModule {}
