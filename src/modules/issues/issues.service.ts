@@ -21,32 +21,31 @@ export class IssuesService {
   ) {}
 
   async create(dto: CreateIssueDto, userId: number) {
-    // Create issue with user relation loaded
     const issue = await this.dataSource.transaction(async (manager) => {
-      // Create issue with user relation
-    const user = await manager.findOne(User, { where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
-
-    const newIssue = manager.create(Issue, {
-      title: dto.title,
-      content: dto.content,
-      language: dto.language,
-      imageUrl: dto.imageUrl,
-      user: user,
-    });
-
-    const savedIssue = await manager.save(newIssue); 
-
-    return savedIssue;
-    }).then(async (savedIssue) => {
-      // Recalculate contributor score after transaction completes
-      await this.profileService.calculateAndPersistScore(userId).catch(() => {
-        // Ignore errors in score calculation
+      const user = await manager.findOne(User, {
+        where: { id: userId },
       });
-      return savedIssue;
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      return this.issueRepository.createIssue(
+          {
+            title: dto.title,
+            content: dto.content,
+            language: dto.language,
+            imageUrl: dto.imageUrl,
+            user,
+          },
+          manager,
+      );
     });
 
-    // Return the created issue with user relation already loaded
+    this.profileService
+        .calculateAndPersistScore(userId)
+        .catch(() => {});
+
     return IssueResponseDto.fromEntity(issue);
   }
 
@@ -94,11 +93,12 @@ export class IssuesService {
   }
 
   async delete(issueId: number, userId: number) {
-    return this.dataSource.transaction(async (manager) => {
-      const issue = await manager.findOne(Issue, {
-        where: { id: issueId, isDeleted: false },
-        relations: ['user'],
-      });
+    await this.dataSource.transaction(async (manager) => {
+      const issue =
+          await this.issueRepository.findActiveByIdWithUser(
+              issueId,
+              manager,
+          );
 
       if (!issue) {
         throw new NotFoundException('Issue not found');
@@ -108,13 +108,12 @@ export class IssuesService {
         throw new ForbiddenException('You are not the owner');
       }
 
-      // Soft delete issue and set deletedAt
-      await manager.update(Issue, { id: issueId }, { isDeleted: true, deletedAt: new Date() });
-
-      // Recalculate contributor score for the owner
-      await this.profileService.calculateAndPersistScore(issue.user.id);
-
+      await this.issueRepository.softDelete(issueId, manager);
     });
+
+    this.profileService
+        .calculateAndPersistScore(userId)
+        .catch(() => {});
   }
 
   // Admin: delete any issue
