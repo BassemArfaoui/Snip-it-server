@@ -25,11 +25,23 @@ export class PostsService {
 
     //note to me in the future : this might look complicated but it's just to get the interactions counts and if the user reacted before efficiently
     async findPaginated(params: PaginationParams, requesterId: number): Promise<PaginatedResult<Post>> {
-        const result = await paginate(this.postRepo, params, {
-            where: { isDeleted: false },
+        // Include soft-deleted posts in feed only for admin users (match profile behavior)
+        const requester = await this.userRepo.findOne({ where: { id: requesterId } });
+        const includeDeleted = !!(requester && (requester.role || '').toString().toLowerCase() === 'admin');
+
+        const findOptions: any = {
             relations: ['author', 'snippet'],
             order: { createdAt: 'DESC' },
-        });
+        };
+
+        if (!includeDeleted) {
+            findOptions.where = { isDeleted: false };
+        } else {
+            // allow fetching deleted rows
+            findOptions.withDeleted = true as any;
+        }
+
+        const result = await paginate(this.postRepo, params, findOptions);
 
         const postIds = result.data.map(p => p.id).filter(Boolean);
         if (!postIds.length) {
@@ -107,7 +119,17 @@ export class PostsService {
     }
 
     async findOneWithInteractions(id: number, requesterId: number): Promise<Post> {
-        const post: any = await this.findOne(id);
+        // Allow admins to see soft-deleted posts
+        const requester = await this.userRepo.findOne({ where: { id: requesterId } });
+        const includeDeleted = !!(requester && (requester.role || '').toString().toLowerCase() === 'admin');
+
+        let post: any;
+        if (includeDeleted) {
+            post = await this.postRepo.findOne({ where: { id }, relations: ['author', 'snippet'], withDeleted: true as any });
+            if (!post) throw new NotFoundException('Post not found');
+        } else {
+            post = await this.findOne(id);
+        }
 
         const reactionTypes = Object.values(ReactionTypeEnum);
 
@@ -211,7 +233,12 @@ export class PostsService {
         }
 
         if (post.author?.id !== requesterId) {
-            throw new ForbiddenException('You are not the owner');
+            // Allow admins to edit other users' posts
+            const requester = await this.userRepo.findOne({ where: { id: requesterId } });
+            const isAdmin = !!requester && (requester.role || '').toString().toLowerCase() === 'admin';
+            if (!isAdmin) {
+                throw new ForbiddenException('You are not the owner');
+            }
         }
 
         if (dto.title !== undefined) post.title = dto.title;

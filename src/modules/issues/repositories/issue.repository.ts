@@ -34,13 +34,15 @@ export class IssueRepository {
     filters: { language?: string; isResolved?: boolean },
     page = 1,
     limit = 10,
+    includeDeleted = false,
   ): Promise<Issue[]> {
     const qb = this.repo.createQueryBuilder('issue')
       .leftJoinAndSelect('issue.user', 'user')
-      .where('issue.isDeleted = false')
       .orderBy('issue.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
+
+    if (!includeDeleted) qb.where('issue.isDeleted = false');
 
     if (filters.language) qb.andWhere('issue.language = :language', { language: filters.language });
     if (filters.isResolved !== undefined) qb.andWhere('issue.isResolved = :isResolved', { isResolved: filters.isResolved });

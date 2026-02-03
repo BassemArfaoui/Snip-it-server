@@ -57,7 +57,7 @@ export class IssuesService {
     isResolved?: boolean;
     page?: number;
     limit?: number;
-  }): Promise<IssueResponseDto[]> {
+  }, includeDeleted = false): Promise<IssueResponseDto[]> {
     const issues = await this.issueRepository.findAll(
       {
         language: query.language,
@@ -65,6 +65,7 @@ export class IssuesService {
       },
       query.page ?? 1,
       query.limit ?? 10,
+      includeDeleted,
     );
     return issues.map(IssueResponseDto.fromEntity);
   }

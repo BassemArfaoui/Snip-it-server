@@ -78,4 +78,13 @@ export class SubscriptionsService {
 
     return { followers: followersCount, following: followingCount };
   }
+
+  // Remove all subscriptions where the user is subscriber or target
+  async removeForUser(userId: number): Promise<void> {
+    await this.subscriptionsRepo
+      .createQueryBuilder()
+      .delete()
+      .where('"subscriberId" = :id OR "targetUserId" = :id', { id: userId })
+      .execute();
+  }
 }

@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class UsersService {
+    private readonly logger = new Logger(UsersService.name);
+
     constructor(
         @InjectRepository(User)
         private usersRepository: Repository<User>,
+        private readonly subscriptionsService: SubscriptionsService,
     ) { }
 
     async create(userData: Partial<User>): Promise<User> {
@@ -88,7 +92,18 @@ export class UsersService {
     }
 
     async removeById(id: number): Promise<void> {
-        await this.usersRepository.delete({ id });
+        try {
+            // First remove subscriptions that reference this user to avoid FK issues
+            await this.subscriptionsService.removeForUser(id);
+
+            await this.usersRepository.delete({ id });
+        } catch (err) {
+            // Log original DB error details for debugging
+            this.logger.error('Failed to delete user', err as any);
+            // In case of a foreign key constraint or other DB error, throw a clearer exception
+            // so the admin client gets a useful message instead of a raw QueryFailedError
+            throw new ConflictException('Cannot delete user: related records exist. See server logs for details');
+        }
     }
 
     async banUser(userId: number): Promise<void> {

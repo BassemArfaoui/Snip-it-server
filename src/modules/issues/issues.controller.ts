@@ -33,7 +33,7 @@ export class IssuesController {
   }
 
   @Get()
-  async findAll(@Query() query: IssueQueryDto): Promise<IssueResponseDto[]> {
+  async findAll(@Query() query: IssueQueryDto, @CurrentUser() user?: User): Promise<IssueResponseDto[]> {
     const parsed = {
       language: query.language,
       isResolved:
@@ -44,7 +44,9 @@ export class IssuesController {
       limit: query.limit ? Number(query.limit) : 10,
     };
 
-    const issues = await this.service.findAll(parsed);
+    const includeDeleted = !!(user && (user.role || '').toString().toLowerCase() === 'admin');
+
+    const issues = await this.service.findAll(parsed, includeDeleted);
     console.log('Returning issues:', issues.length, 'issues');
     return issues;
   }
