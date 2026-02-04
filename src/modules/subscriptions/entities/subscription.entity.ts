@@ -5,9 +5,9 @@ import { User } from '../../users/entities/user.entity';
 @Entity('subscriptions')
 @Unique(['subscriber', 'targetUser'])
 export class Subscription extends BaseEntity {
-    @ManyToOne(() => User, user => user.subscriptions)
+    @ManyToOne(() => User, user => user.subscriptions, { onDelete: 'CASCADE' })
     subscriber: User;
 
-    @ManyToOne(() => User)
+    @ManyToOne(() => User, { onDelete: 'CASCADE' })
     targetUser: User;
 }

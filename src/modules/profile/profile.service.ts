@@ -69,6 +69,7 @@ export class ProfileService {
 				issues: issuesCount,
 				score: user.contributorScore ?? 0,
 				isFollowing,
+				role: user.role,
 			};
 		} catch (error) {
 			if (error instanceof NotFoundException) {
@@ -113,15 +114,19 @@ export class ProfileService {
 		return [] as any[];
 	}
 
-	async getUserPosts(userId: number) {
+	async getUserPosts(userId: number, requester?: User) {
 		try {
 			const user = await this.usersRepo.findOne({ where: { id: userId } });
 			if (!user) {
 				throw new NotFoundException('User not found');
 			}
+			// Only include soft-deleted posts for admins
+			const includeDeleted = !!(requester && (requester.role || '').toString().toLowerCase() === 'admin');
+			// console.log(`[ProfileService] getUserPosts: userId=${userId} requesterId=${requester?.id ?? 'none'} role=${requester?.role ?? 'none'} includeDeleted=${includeDeleted}`);
 			const posts = await this.postsRepo.find({ 
 				where: { author: { id: userId } }, 
-				relations: ['author', 'snippet'] 
+				relations: ['author', 'snippet'],
+				withDeleted: includeDeleted as any,
 			});
 			return posts || [];
 		} catch (error) {
@@ -132,13 +137,15 @@ export class ProfileService {
 		}
 	}
 
-	async getUserIssues(userId: number) {
+	async getUserIssues(userId: number, requester?: User) {
 		try {
 			const user = await this.usersRepo.findOne({ where: { id: userId } });
 			if (!user) {
 				throw new NotFoundException('User not found');
 			}
-			const issues = await this.issuesRepo.find({ where: { user: { id: userId } } });
+			// Only include soft-deleted issues for admins
+			const includeDeleted = !!(requester && (requester.role || '').toString().toLowerCase() === 'admin');
+			const issues = await this.issuesRepo.find({ where: { user: { id: userId } }, withDeleted: includeDeleted as any });
 			return issues || [];
 		} catch (error) {
 			if (error instanceof NotFoundException) {

@@ -11,5 +11,6 @@ import { Solution } from '../solutions/entities/solution.entity';
     imports: [TypeOrmModule.forFeature([Comment, User, Post, Solution])],
     controllers: [CommentsController],
     providers: [CommentsService],
+    exports: [CommentsService],
 })
 export class CommentsModule { }
