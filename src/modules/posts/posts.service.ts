@@ -21,6 +21,15 @@ export class PostsService {
         @InjectRepository(Interaction) private readonly interactionRepo: Repository<Interaction>,
     ) {}
 
+    private assignDefined<T extends object>(target: T, patch: Partial<T>): void {
+        for (const key of Object.keys(patch) as (keyof T)[]) {
+            const value = patch[key];
+            if (value !== undefined) {
+                target[key] = value;
+            }
+        }
+    }
+
 
 
     //note to me in the future : this might look complicated but it's just to get the interactions counts and if the user reacted before efficiently
@@ -214,13 +223,17 @@ export class PostsService {
             throw new ForbiddenException('You are not the owner');
         }
 
-        if (dto.title !== undefined) post.title = dto.title;
-        if (dto.description !== undefined) post.description = dto.description;
-        if (dto.githubLink !== undefined) post.githubLink = dto.githubLink;
+        this.assignDefined(post, {
+            title: dto.title,
+            description: dto.description,
+            githubLink: dto.githubLink,
+        });
 
-        if (dto.snippetContent !== undefined) post.snippet.content = dto.snippetContent;
-        if (dto.snippetLanguage !== undefined) post.snippet.language = dto.snippetLanguage;
-        if (dto.snippetTitle !== undefined) post.snippet.title = dto.snippetTitle;
+        this.assignDefined(post.snippet, {
+            content: dto.snippetContent,
+            language: dto.snippetLanguage,
+            title: dto.snippetTitle,
+        });
 
         await this.snippetRepo.save(post.snippet);
         return this.postRepo.save(post);
